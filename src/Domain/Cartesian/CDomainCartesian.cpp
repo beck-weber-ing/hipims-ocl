@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <boost/lexical_cast.hpp>
-
+#include <math.h>
 #include "../../common.h"
 #include "../../main.h"
 #include "../../CModel.h"
@@ -443,8 +443,8 @@ bool	CDomainCartesian::validateDomain( bool bQuiet )
 	}
 
 	// Got an offset?
-	if ( std::isnan( this->dRealOffset[ kAxisX ] ) ||
-		 std::isnan( this->dRealOffset[ kAxisY ] ) )
+	if ( isnan( this->dRealOffset[ kAxisX ] ) ||
+		 isnan( this->dRealOffset[ kAxisY ] ) )
 	{
 		if ( !bQuiet ) model::doError(
 			"Domain offset not defined",
