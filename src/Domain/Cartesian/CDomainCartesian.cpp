@@ -351,6 +351,7 @@ bool	CDomainCartesian::loadInitialConditionSource( sDataSourceInfo pDataSource, 
 		pDataset.openFileRead(
 			std::string( cDataDir ) + std::string( pDataSource.cFileValue )
 		);
+		pManager->log->writeLine( std::string("Opened initial condition from: ")+std::string(cDataDir)+std::string(pDataSource.cFileValue));
 		return pDataset.applyDataToDomain( pDataSource.ucValue, this );
 	}
 	else if ( strcmp( pDataSource.cSourceType, "constant" ) == 0 )
