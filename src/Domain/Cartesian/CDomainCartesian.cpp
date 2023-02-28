@@ -269,6 +269,7 @@ bool	CDomainCartesian::loadInitialConditions( XMLElement* pXData )
 	}
 	for ( unsigned int i = 0; i < pDataOther.size(); ++i )
 	{
+		pManager->log->writeLine( std::string("Trying to load initial condition from: ")+std::string(cSourceDir)+std::string("/")+std::string(pDataOther[i]) );
 		if ( !this->loadInitialConditionSource( pDataOther[i], cSourceDir ) )
 		{
 			model::doError(
