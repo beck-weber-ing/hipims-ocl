@@ -395,9 +395,14 @@ bool	CRasterDataset::applyDataToDomain( unsigned char ucValue, CDomainCartesian*
 	unsigned char	ucDataIndex	= 0;
 	unsigned char	ucRounding	= 4;			// decimal places
 
-	if ( !this->bAvailable ) return false;
-	if ( !this->isDomainCompatible( pDomain ) ) return false;
-
+	if ( !this->bAvailable ) {
+		pManager->log->writeLine( "Dataset not available." );
+		return false;
+	}
+	if ( !this->isDomainCompatible( pDomain ) ) {
+		pManager->log->writeLine( "Dataset domain not compatible." );
+		return false;
+	}
 	CRasterDataset::getValueDetails( ucValue, &sValueName );
 	pManager->log->writeLine( "Loading " + sValueName + " from raster dataset." );
 
