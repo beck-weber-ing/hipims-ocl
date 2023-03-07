@@ -128,7 +128,7 @@ bool CBoundaryGridded::setupFromConfig(XMLElement* pElement, std::string sBounda
 		if (!Util::fileExists(sFilename.c_str()))
 		{
 			model::doError(
-				"Gridded boundary raster missing for " + Util::secondsToTime( dTime ),
+				"Gridded boundary raster missing for " + Util::secondsToTime( dTime ) + " with filename '" + sFilename + "'",
 				model::errorCodes::kLevelWarning
 			);
 			this->dTimeseriesLength = min( this->dTimeseriesLength, dTime );
