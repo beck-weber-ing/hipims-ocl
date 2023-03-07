@@ -106,7 +106,8 @@ bool CBoundaryGridded::setupFromConfig(XMLElement* pElement, std::string sBounda
 	}
 
 	// Allocate memory for the array of gridded inputs
-	this->uiTimeseriesLength = static_cast<unsigned int>(ceil(pManager->getSimulationLength() / dInterval)) + 1;
+	//this->uiTimeseriesLength = static_cast<unsigned int>(ceil(pManager->getSimulationLength() / dInterval)) + 1;
+	this->uiTimeseriesLength = static_cast<unsigned int>(floor(pManager->getSimulationLength() / dInterval)) + 1;
 	this->pTimeseries = new CBoundaryGriddedEntry*[ this->uiTimeseriesLength ];
 	SBoundaryGridTransform* pTransform = NULL;
 
