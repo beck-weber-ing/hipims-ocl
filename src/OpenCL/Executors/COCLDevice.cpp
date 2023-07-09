@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -25,6 +25,7 @@
 #include "../../Base/CExecutorControl.h"
 #include "CExecutorControlOpenCL.h"
 #include "COCLDevice.h"
+#include "../cl_error.h"
 
 /*
  *  Constructor
@@ -32,14 +33,14 @@
 COCLDevice::COCLDevice( cl_device_id clDevice, unsigned int iPlatformID, unsigned int iDeviceNo )
 {
 	// Store the device and platform ID
-	this->uiPlatformID			= iPlatformID;
-	this->uiDeviceNo			= iDeviceNo + 1;
-	this->clDevice				= clDevice;
+	this->uiPlatformID		= iPlatformID;
+	this->uiDeviceNo		= iDeviceNo + 1;
+	this->clDevice			= clDevice;
 	this->execController		= pManager->getExecutor();
 	this->bForceSinglePrecision	= false;
-	this->bErrored				= false;
-	this->bBusy					= false;
-	this->clMarkerEvent			= NULL;
+	this->bErrored			= false;
+	this->bBusy			= false;
+	this->clMarkerEvent		= NULL;
 
 	pManager->log->writeLine( "Querying the suitability of a discovered device." );
 
@@ -52,9 +53,9 @@ COCLDevice::COCLDevice( cl_device_id clDevice, unsigned int iPlatformID, unsigne
  */
 COCLDevice::~COCLDevice(void)
 {
-	clFinish( this->clQueue );
-	clReleaseCommandQueue( this->clQueue );
-	clReleaseContext( this->clContext );
+	cl(clFinish( this->clQueue ));
+	cl(clReleaseCommandQueue( this->clQueue ));
+	cl(clReleaseContext( this->clContext ));
 
 	delete[] this->clDeviceMaxWorkItemSizes;
 	delete[] this->clDeviceName;
@@ -169,12 +170,12 @@ void* COCLDevice::getDeviceInfo( cl_device_info clInfo )
 	cl_int		iErrorID;
 	size_t		clSize;
 
-	iErrorID = clGetDeviceInfo( 
-		this->clDevice, 
-		clInfo, 
-		NULL, 
-		NULL, 
-		&clSize 
+	iErrorID = clGetDeviceInfo(
+		this->clDevice,
+		clInfo,
+		NULL,
+		NULL,
+		&clSize
 	);
 
 	if (iErrorID != CL_SUCCESS)
@@ -182,12 +183,12 @@ void* COCLDevice::getDeviceInfo( cl_device_info clInfo )
 
 	char* cValue = new char[ clSize + 1 ];
 
-	iErrorID = clGetDeviceInfo( 
-		this->clDevice, 
-		clInfo, 
-		clSize, 
-		cValue, 
-		NULL 
+	iErrorID = clGetDeviceInfo(
+		this->clDevice,
+		clInfo,
+		clSize,
+		cValue,
+		NULL
 	);
 
 	if (iErrorID != CL_SUCCESS)
@@ -218,8 +219,8 @@ void COCLDevice::logDevice()
 		sDoubleSupport = "Available";
 
 	std::stringstream ssGroupDimensions;
-	ssGroupDimensions << "["  << this->clDeviceMaxWorkItemSizes[0] << 
-						 ", " << this->clDeviceMaxWorkItemSizes[1] << 
+	ssGroupDimensions << "["  << this->clDeviceMaxWorkItemSizes[0] <<
+						 ", " << this->clDeviceMaxWorkItemSizes[1] <<
 						 ", " << this->clDeviceMaxWorkItemSizes[2] << "]";
 
 	pLog->writeLine( "#" + toString( this->uiDeviceNo ) + sDeviceType, true, wColour );
@@ -262,19 +263,19 @@ void COCLDevice::createQueue()
 
 	pManager->log->writeLine( "Creating an OpenCL device context and command queue." );
 
-	this->clContext = clCreateContext( 
-		NULL,						// Properties (nothing special required) 
-		1,							// Number of devices
-		&this->clDevice,			// Device
-		NULL,						// Error handling callback
-		NULL,						// User data argument for the error handling callback
-		&iErrorID					// Error ID pointer
+	this->clContext = clCreateContext(
+		NULL,			// Properties (nothing special required)
+		1,			// Number of devices
+		&this->clDevice,	// Device
+		NULL,			// Error handling callback
+		NULL,			// User data argument for the error handling callback
+		&iErrorID		// Error ID pointer
 	);
 
-	if ( iErrorID != CL_SUCCESS ) 
+	if ( iErrorID != CL_SUCCESS )
 	{
-		model::doError( 
-			"Error creating device context.", 
+		model::doError(
+			"Error creating device context.",
 			model::errorCodes::kLevelWarning
 		);
 		return;
@@ -284,13 +285,15 @@ void COCLDevice::createQueue()
 		this->clContext,
 		this->clDevice,
 		CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+		//CL_QUEUE_PROFILING_ENABLE,
+		//0,
 		&iErrorID
 	);
 
-	if ( iErrorID != CL_SUCCESS ) 
+	if ( iErrorID != CL_SUCCESS )
 	{
-		model::doError( 
-			"Error creating device command queue.", 
+		model::doError(
+			"Error creating device command queue.",
 			model::errorCodes::kLevelWarning
 		);
 		return;
@@ -371,31 +374,46 @@ bool COCLDevice::isFiltered()
 /*
  *  Enqueue a buffer command to synchronise threads
  */
-void	COCLDevice::queueBarrier()
+void COCLDevice::queueBarrier()
 {
 #ifdef USE_SIMPLE_ARCH_OPENCL
 	// Causes crashes... for some reason... Review later.
 	return;
 #endif
-	clEnqueueBarrier( this->clQueue );
+	cl(clEnqueueBarrier( this->clQueue ));
 }
 
 /*
  *  Block program execution until all commands in the queue are
  *  completed.
  */
-void	COCLDevice::blockUntilFinished()
+ std::mutex debugMutex0;
+void COCLDevice::blockUntilFinished()
 {
-	this->bBusy = true;
-	clFlush( this->clQueue );
-	clFinish( this->clQueue );
-	/*
-	if (clMarkerEvent != NULL) {
-		clReleaseEvent(clMarkerEvent);
-		clMarkerEvent = NULL;
+	{
+
+		// {
+		// 	std::unique_lock<std::mutex> lock(debugMutex0);
+		// 	std::cerr << "DEVICE STATE: " << getDeviceID() << " bBusy: " << this->bBusy << " bErrored: " << this->bErrored << std::endl;
+		// }
+		//flush();
+		this->bBusy = true;
+
+#ifdef DEBUG_OPENCL
+		{
+			uint32_t queue_size{0};
+			cl(clGetCommandQueueInfo(this->clQueue,/* CL_QUEUE_SIZE */ 0x1094,sizeof(queue_size),&queue_size,NULL));
+			std::cout << "OPENCL QUEUE SIZE [" << getDeviceID() << "]: " << queue_size << std::endl;;
+		}
+#endif
+
+		// cl(clFlush( this->clQueue )); // clFinish (at least by standard reference) includes a flush
+		cl(clFinish( this->clQueue ));
+		this->bBusy = false;
 	}
-	*/
-	this->bBusy = false;
+	#ifdef DEBUG_MPI
+	pManager->log->writeLine( std::string(__PRETTY_FUNCTION__) + ": finished");
+	#endif
 }
 
 /*
@@ -403,8 +421,8 @@ void	COCLDevice::blockUntilFinished()
  */
 bool COCLDevice::isDoubleCompatible()
 {
-	return ( this->clDeviceDoubleFloatConfig & 
-		 ( CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM ) ) == 
+	return ( this->clDeviceDoubleFloatConfig &
+		 ( CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM ) ) ==
 		 ( CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM );
 }
 
@@ -414,7 +432,14 @@ bool COCLDevice::isDoubleCompatible()
 void CL_CALLBACK COCLDevice::defaultCallback( cl_event clEvent, cl_int iStatus, void * vData )
 {
 	//unsigned int uiDeviceNo = *(unsigned int*)vData; // Unused
-	clReleaseEvent( clEvent );
+#ifdef DEBUG_OPENCL
+	pManager->log->writeLine( std::string("OPENCL DEFAULT CALLBACK [") + std::to_string(iStatus)+ "]");
+#endif
+	assert(iStatus == CL_COMPLETE);
+	cl(clReleaseEvent( clEvent ));
+
+	// DEBUGGING - make sure this is never called.
+	exit(1);
 }
 
 /*
@@ -422,34 +447,9 @@ void CL_CALLBACK COCLDevice::defaultCallback( cl_event clEvent, cl_int iStatus, 
  */
 void COCLDevice::flushAndSetMarker()
 {
-	this->bBusy	= true;
-	clFlush(clQueue);
+	this->bBusy = true;
+	flush();
 	return;
-
-#ifdef USE_SIMPLE_ARCH_OPENCL
-	this->blockUntilFinished();
-	return;
-#endif
-	
-	if ( clMarkerEvent != NULL )
-	{
-		clReleaseEvent( clMarkerEvent );
-	}
-
-	// NOTE: OpenCL 1.2 uses clEnqueueMarkerWithWaitList() instead
-	clEnqueueMarker(
-		 clQueue,
-		 &clMarkerEvent 
-	);
-
-	clSetEventCallback(
-		clMarkerEvent,
-		CL_COMPLETE,
-		COCLDevice::markerCallback,
-		static_cast<void*>( &this->uiDeviceNo )
-	);
-
-	clFlush(clQueue);
 }
 
 /*
@@ -457,7 +457,7 @@ void COCLDevice::flushAndSetMarker()
  */
 void	COCLDevice::flush()
 {
-	clFlush(clQueue);
+	cl(clFlush(clQueue));
 }
 
 /*
@@ -465,11 +465,16 @@ void	COCLDevice::flush()
  */
 void CL_CALLBACK COCLDevice::markerCallback( cl_event clEvent, cl_int iStatus, void * vData )
 {
+	exit(2);
+
 	unsigned int uiDeviceNo = *(unsigned int*)vData;
-	clReleaseEvent( clEvent );
+	cl(clReleaseEvent( clEvent ));
 
 	COCLDevice* pDevice = pManager->getExecutor()->getDevice( uiDeviceNo );
 	pDevice->markerCompletion();
+	#ifdef DEBUG_OPENCL
+		std::cerr << __PRETTY_FUNCTION__ << ": MARKER CALLBACK CALLED" << std::endl;
+	#endif
 }
 
 /*
@@ -478,7 +483,7 @@ void CL_CALLBACK COCLDevice::markerCallback( cl_event clEvent, cl_int iStatus, v
 void COCLDevice::markerCompletion()
 {
 	this->clMarkerEvent = NULL;
-	this->bBusy			= false;
+	this->bBusy	= false;
 }
 
 /*
@@ -488,38 +493,13 @@ bool COCLDevice::isBusy()
 {
 	// To use the callback mechanism...
 	return this->bBusy;
-
-	if (clMarkerEvent == NULL)
-		return false;
-
-	cl_int iStatus;
-	size_t szStatusSize;
-	cl_int iQueryStatus = clGetEventInfo(
-		clMarkerEvent,
-		CL_EVENT_COMMAND_EXECUTION_STATUS,
-		sizeof(cl_int),
-		&iStatus,
-		&szStatusSize
-	);
-
-	if (iQueryStatus != CL_SUCCESS)
-		return true;
-
-	pManager->log->writeLine("Exec status for device #" + toString(uiDeviceNo)+" is " + toString(iStatus));
-	if (iStatus == CL_COMPLETE)
-	{
-		return false;
-	}
-	else {
-		return true;
-	}
 }
 
 
 /*
  *  Get a short name for the device
  */
-std::string		COCLDevice::getDeviceShortName( void )
+std::string COCLDevice::getDeviceShortName( void )
 {
 	std::string sName = "";
 

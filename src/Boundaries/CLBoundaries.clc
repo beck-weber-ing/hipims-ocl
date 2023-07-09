@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -76,9 +76,9 @@ __kernel void bdy_Cell (
 			pConfig.DefinitionDischarge == BOUNDARY_DISCHARGE_IS_VOLUME)
 		{
 			// Calculate a suitable depth based
-			__private cl_double dDepth = (fabs(pTSInterp.z) * dLocalTimestep) / DOMAIN_DELTAY + (fabs(pTSInterp.w) * dLocalTimestep) / DOMAIN_DELTAX;
-			__private cl_double dNormalDepth = fmax(pown(pTSInterp.z, 2) / GRAVITY, pown(pTSInterp.w, 2) / GRAVITY);
-			__private cl_double dCriticalDepth = fmax(pow(pow(pTSInterp.z, 2) / GRAVITY, 1.0 / 3.0), pow(pow(pTSInterp.w, 2) / GRAVITY, 1.0 / 3.0));
+			__private cl_double dDepth = (fabs(pTSInterp.z) * dLocalTimestep) * DOMAIN_DELTAY_R + (fabs(pTSInterp.w) * dLocalTimestep) * DOMAIN_DELTAX_R;
+			__private cl_double dNormalDepth = fmax(pown(pTSInterp.z, 2) * GRAVITY_R, pown(pTSInterp.w, 2) * GRAVITY_R);
+			__private cl_double dCriticalDepth = fmax(pow(pown(pTSInterp.z, 2) * GRAVITY_R, 1.0 / 3.0), pow(pown(pTSInterp.w, 2) * GRAVITY_R, 1.0 / 3.0));
 
 			// Not going to impose a direction if we're trying to represent
 			// a surging discharge rate (e.g. manhole surge)
@@ -95,9 +95,9 @@ __kernel void bdy_Cell (
 				pTSInterp.z = 0.0;
 				pTSInterp.w = 0.0;
 			}
-			
+
 			pCellData.x = fmax(dCellBed + dCriticalDepth, pCellData.x + dDepth);
-			
+
 			#ifdef DEBUG_OUTPUT
 			printf("Setting depth as %f.\n", dDepth);
 			#endif

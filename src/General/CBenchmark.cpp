@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -96,7 +96,7 @@ void CBenchmark::start()
  */
 void CBenchmark::finish()
 {
-	if ( !this->bRunning ) 
+	if ( !this->bRunning )
 		return;
 
 	this->dEndTime = this->getCurrentTime();

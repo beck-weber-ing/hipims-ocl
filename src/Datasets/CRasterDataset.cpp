@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -98,8 +98,8 @@ bool	CRasterDataset::openFileRead( std::string sFilename )
 /*
  *  Open a file for output
  */
-bool	CRasterDataset::domainToRaster( 
-			const char*			cDriver, 
+bool	CRasterDataset::domainToRaster(
+			const char*			cDriver,
 			std::string			sFilename,
 			CDomainCartesian*	pDomain,
 			unsigned char		ucValue
@@ -145,13 +145,15 @@ bool	CRasterDataset::domainToRaster(
 
 	// Create and set metadata
 	czOptions = NULL;
-	pDataset = pDriver->Create(  sFilename.c_str(),			// Filename
-								 pDomain->getCols(),		// X size
-								 pDomain->getRows(),		// Y size
-								 1,							// Bands
-								 GDT_Float64,				// Data format
-								 czOptions );				// Options
-								 
+	pDataset = pDriver->Create(
+		sFilename.c_str(),			// Filename
+		pDomain->getCols(),		// X size
+		pDomain->getRows(),		// Y size
+		1,							// Bands
+		GDT_Float64,				// Data format
+		czOptions
+	);				// Options
+
 	if ( pDataset == NULL )
 	{
 		model::doError(
@@ -185,80 +187,92 @@ bool	CRasterDataset::domainToRaster(
 			switch( ucValue )
 			{
 			case model::rasterDatasets::dataValues::kMaxFSL:
-				dRow[ iCol ] = pDomain->getStateValue( 
+				dRow[ iCol ] = pDomain->getStateValue(
 					ulCellID,
 					model::domainValueIndices::kValueMaxFreeSurfaceLevel
 				);
-				if ( dRow[ iCol ] < pDomain->getBedElevation( ulCellID ) + 1E-8 ) 
+				if ( dRow[ iCol ] < pDomain->getBedElevation( ulCellID ) + 1E-8 )
 					dRow[ iCol ] = pBand->GetNoDataValue();
 				if (pDomain->getBedElevation(ulCellID) > 9999.0)
 					dRow[iCol] = pBand->GetNoDataValue();
 				break;
 			case model::rasterDatasets::dataValues::kFreeSurfaceLevel:
-				dRow[ iCol ] = pDomain->getStateValue( 
+				dRow[ iCol ] = pDomain->getStateValue(
 					ulCellID,
 					model::domainValueIndices::kValueFreeSurfaceLevel
 				);
-				if ( dRow[ iCol ] < pDomain->getBedElevation( ulCellID ) + 1E-8 ) 
+				if ( dRow[ iCol ] < pDomain->getBedElevation( ulCellID ) + 1E-8 )
 					dRow[ iCol ] = pBand->GetNoDataValue();
 				if (pDomain->getBedElevation(ulCellID) > 9999.0)
 					dRow[iCol] = pBand->GetNoDataValue();
 				break;
 			case model::rasterDatasets::dataValues::kMaxDepth:
-				dRow[ iCol ] = max( 0.0, pDomain->getStateValue( ulCellID, 
-									model::domainValueIndices::kValueMaxFreeSurfaceLevel ) - 
+				dRow[ iCol ] = max( 0.0, pDomain->getStateValue( ulCellID,
+									model::domainValueIndices::kValueMaxFreeSurfaceLevel ) -
 									pDomain->getBedElevation( ulCellID ) );
-				if ( dRow[ iCol ] < 1E-8 || dRow[iCol] <= -9990.0 || dRow[iCol] >= 9999.0 ) 
+				if ( dRow[ iCol ] < 1E-8 || dRow[iCol] <= -9990.0 || dRow[iCol] >= 9999.0 )
 					dRow[ iCol ] = pBand->GetNoDataValue();
 				break;
 			case model::rasterDatasets::dataValues::kDepth:
-				dRow[ iCol ] = max( 0.0, pDomain->getStateValue( ulCellID, 
-									model::domainValueIndices::kValueFreeSurfaceLevel ) - 
+				dRow[ iCol ] = max( 0.0, pDomain->getStateValue( ulCellID,
+									model::domainValueIndices::kValueFreeSurfaceLevel ) -
 									pDomain->getBedElevation( ulCellID ) );
-				if ( dRow[ iCol ] < 1E-8 ) 
+				if ( dRow[ iCol ] < 1E-8 )
 					dRow[ iCol ] = pBand->GetNoDataValue();
 				break;
 			case model::rasterDatasets::dataValues::kDischargeX:
-				dRow[ iCol ] = pDomain->getStateValue( 
+				dRow[ iCol ] = pDomain->getStateValue(
 					ulCellID,
 					model::domainValueIndices::kValueDischargeX
 				) * dResolution;
 				break;
 			case model::rasterDatasets::dataValues::kDischargeY:
-				dRow[ iCol ] = pDomain->getStateValue( 
+				dRow[ iCol ] = pDomain->getStateValue(
 					ulCellID,
 					model::domainValueIndices::kValueDischargeY
 				) * dResolution;
 				break;
 			case model::rasterDatasets::dataValues::kVelocityX:
 				dDepth		 = pDomain->getStateValue( ulCellID,
-									model::domainValueIndices::kValueFreeSurfaceLevel ) - 
+									model::domainValueIndices::kValueFreeSurfaceLevel ) -
 							   pDomain->getBedElevation( ulCellID );
 				dRow[ iCol ] = ( dDepth > 1E-8 ?
 							   ( pDomain->getStateValue( ulCellID,
-									model::domainValueIndices::kValueDischargeX ) / 
+									model::domainValueIndices::kValueDischargeX ) /
 									dDepth ) :
 							   ( pBand->GetNoDataValue() ) );
 				break;
 			case model::rasterDatasets::dataValues::kVelocityY:
 				dDepth		 = pDomain->getStateValue( ulCellID,
-									model::domainValueIndices::kValueFreeSurfaceLevel ) - 
+									model::domainValueIndices::kValueFreeSurfaceLevel ) -
 							   pDomain->getBedElevation( ulCellID );
 				dRow[ iCol ] = ( dDepth > 1E-8 ?
 							   ( pDomain->getStateValue( ulCellID,
-									model::domainValueIndices::kValueDischargeY ) / 
+									model::domainValueIndices::kValueDischargeY ) /
 									dDepth ) :
+							   ( pBand->GetNoDataValue() ) );
+				break;
+			case model::rasterDatasets::dataValues::kMaxVelocity:
+				dDepth		 = pDomain->getStateValue( ulCellID,
+									model::domainValueIndices::kValueFreeSurfaceLevel ) -
+							   pDomain->getBedElevation( ulCellID );
+				dRow[ iCol ] = ( dDepth > 1E-8 ?
+							   sqrt(
+								pow(( pDomain->getStateValue( ulCellID, model::domainValueIndices::kValueDischargeX ) / dDepth ),2)+
+							   	pow(( pDomain->getStateValue( ulCellID, model::domainValueIndices::kValueDischargeY ) / dDepth ),2)
+								)
+								:
 							   ( pBand->GetNoDataValue() ) );
 				break;
 			case model::rasterDatasets::dataValues::kFroudeNumber:
 				dDepth		 = pDomain->getStateValue( ulCellID,
-									model::domainValueIndices::kValueFreeSurfaceLevel ) - 
+									model::domainValueIndices::kValueFreeSurfaceLevel ) -
 							   pDomain->getBedElevation( ulCellID );
 				dVelocityY	 = pDomain->getStateValue( ulCellID,
-									model::domainValueIndices::kValueDischargeY ) / 
+									model::domainValueIndices::kValueDischargeY ) /
 									dDepth;
 				dVelocityX	 = pDomain->getStateValue( ulCellID,
-									model::domainValueIndices::kValueDischargeX ) / 
+									model::domainValueIndices::kValueDischargeX ) /
 									dDepth;
 				dRow[ iCol ] = ( dDepth > 1E-8 ?
 							   ( sqrt( dVelocityX*dVelocityX + dVelocityY*dVelocityY ) / sqrt( 9.81 * dDepth ) ) :
@@ -267,22 +281,24 @@ bool	CRasterDataset::domainToRaster(
 			}
 		}
 
-		pBand->RasterIO( GF_Write,							// Flag
-						 0,									// X offset
-						 pDomain->getRows() - iRow - 1,		// Y offset
-						 pDomain->getCols(),				// X size
-						 1,									// Y size
-						 dRow,								// Memory
-						 pDomain->getCols(),				// X buffer size
-						 1,									// Y buffer size
-						 GDT_Float64,						// Data type
-						 0,									// Pixel space
-						 0 );								// Line space
+		pBand->RasterIO(
+			GF_Write,			// Flag
+			0,				// X offset
+			pDomain->getRows() - iRow - 1,	// Y offset
+			pDomain->getCols(),		// X size
+			1,				// Y size
+			dRow,				// Memory
+			pDomain->getCols(),		// X buffer size
+			1,				// Y buffer size
+			GDT_Float64,			// Data type
+			0,				// Pixel space
+			0 				// Line space
+		);
 	}
 	delete [] dRow;
-	
+
 	GDALClose( (GDALDatasetH)pDataset );
-	
+
 	return true;
 }
 
@@ -297,7 +313,7 @@ void	CRasterDataset::readMetadata()
 	if ( !this->bAvailable ) return;
 
 	gdDriver		= this->gdDataset->GetDriver();
-	
+
 	this->cDriverDescription	= const_cast<char*>( gdDriver->GetDescription() );
 	this->cDriverLongName		= const_cast<char*>( gdDriver->GetMetadataItem( GDAL_DMD_LONGNAME ) );
 	this->ulColumns				= this->gdDataset->GetRasterXSize();
@@ -357,10 +373,10 @@ bool	CRasterDataset::applyDimensionsToDomain( CDomainCartesian*	pDomain )
 	pManager->log->writeLine( "Dimensioning domain from raster dataset." );
 
 	pDomain->setProjectionCode( 0 );					// Unknown
-	pDomain->setUnits( "m" );							
-	pDomain->setCellResolution( this->dResolutionX );	
-	pDomain->setRealDimensions( this->dResolutionX * this->ulColumns, this->dResolutionY * this->ulRows );	
-	pDomain->setRealOffset( this->dOffsetX, this->dOffsetY );			
+	pDomain->setUnits( "m" );
+	pDomain->setCellResolution( this->dResolutionX );
+	pDomain->setRealDimensions( this->dResolutionX * this->ulColumns, this->dResolutionY * this->ulRows );
+	pDomain->setRealOffset( this->dOffsetX, this->dOffsetY );
 	pDomain->setRealExtent( this->dOffsetY + this->dResolutionY * this->ulRows,
 						    this->dOffsetX + this->dResolutionX * this->ulColumns,
 							this->dOffsetY,
@@ -379,9 +395,14 @@ bool	CRasterDataset::applyDataToDomain( unsigned char ucValue, CDomainCartesian*
 	unsigned char	ucDataIndex	= 0;
 	unsigned char	ucRounding	= 4;			// decimal places
 
-	if ( !this->bAvailable ) return false;
-	if ( !this->isDomainCompatible( pDomain ) ) return false;
-
+	if ( !this->bAvailable ) {
+		pManager->log->writeLine( "Dataset not available." );
+		return false;
+	}
+	if ( !this->isDomainCompatible( pDomain ) ) {
+		pManager->log->writeLine( "Dataset domain not compatible." );
+		return false;
+	}
 	CRasterDataset::getValueDetails( ucValue, &sValueName );
 	pManager->log->writeLine( "Loading " + sValueName + " from raster dataset." );
 
@@ -431,7 +452,7 @@ bool	CRasterDataset::isDomainCompatible( CDomainCartesian* pDomain )
 {
 	if ( pDomain->getCols() != this->ulColumns ) return false;
 	if ( pDomain->getRows() != this->ulRows) return false;
-	
+
 	// Assume yes for now
 	// TODO: Add extra checks
 	return true;
@@ -472,7 +493,7 @@ CBoundaryGridded::SBoundaryGridTransform* CRasterDataset::createTransformationFo
  */
 double*		CRasterDataset::createArrayForBoundary( CBoundaryGridded::SBoundaryGridTransform *sTransform )
 {
-	double* dReturn = new double[ sTransform->uiColumns * sTransform->uiRows ]; 
+	double* dReturn = new double[ sTransform->uiColumns * sTransform->uiRows ];
 	GDALRasterBand *pBand = this->gdDataset->GetRasterBand(1);
 
 	double*			dScanLine;
@@ -544,6 +565,9 @@ void	CRasterDataset::getValueDetails( unsigned char ucValue, std::string* sValue
 		break;
 	case model::rasterDatasets::dataValues::kMaxDepth:
 		*sValueName  = "maximum depth";
+		break;
+	case model::rasterDatasets::dataValues::kMaxVelocity:
+		*sValueName  = "maximum velocity magnitude";
 		break;
 	case model::rasterDatasets::dataValues::kFroudeNumber:
 		*sValueName  = "froude number";

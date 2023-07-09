@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -63,10 +63,10 @@ void CLog::openFile()
 	if ( this->isFileAvailable() )
 		return;
 
-	try 
+	try
 	{
 		this->logStream.open( this->logPath );
-	} 
+	}
 	catch ( char * cError )
 	{
 		this->writeError( std::string( cError ), model::errorCodes::kLevelWarning );
@@ -87,7 +87,7 @@ bool CLog::isFileAvailable()
  */
 void CLog::closeFile()
 {
-	if ( !this->isFileAvailable() ) 
+	if ( !this->isFileAvailable() )
 		return;
 
 	this->logStream.flush();
@@ -116,6 +116,7 @@ void CLog::writeLine( std::string sLine, bool bTimestamp ) { this->writeLine( sL
  */
 void CLog::writeLine(std::string sLine, bool bTimestamp, unsigned short wColour)
 {
+	std::unique_lock<std::mutex> lock(this->mutex);
 	time_t tNow;
 	time(&tNow);
 
@@ -192,7 +193,7 @@ void CLog::writeLine(std::string sLine, bool bTimestamp, unsigned short wColour)
 }
 
 /*
- *  Write details of an error that's occured 
+ *  Write details of an error that's occured
  *  Actually handling the error is conducted in the main
  *  sub-procedure.
  */
@@ -200,16 +201,16 @@ void CLog::writeError( std::string sError, unsigned char cError )
 {
 	std::string sErrorPrefix = "UNKNOWN";
 
-	if ( cError & model::errorCodes::kLevelFatal ) { 
-		sErrorPrefix = "FATAL ERROR"; 
-	} else if ( cError & model::errorCodes::kLevelModelStop	) { 
-		sErrorPrefix = "MODEL FAILURE"; 
-	} else if ( cError & model::errorCodes::kLevelModelContinue	) { 
-		sErrorPrefix = "MODEL WARNING"; 
-	} else if ( cError & model::errorCodes::kLevelWarning ) { 
-		sErrorPrefix = "WARNING"; 
-	} else if ( cError & model::errorCodes::kLevelInformation ) { 
-		sErrorPrefix = "INFO"; 
+	if ( cError & model::errorCodes::kLevelFatal ) {
+		sErrorPrefix = "FATAL ERROR";
+	} else if ( cError & model::errorCodes::kLevelModelStop	) {
+		sErrorPrefix = "MODEL FAILURE";
+	} else if ( cError & model::errorCodes::kLevelModelContinue	) {
+		sErrorPrefix = "MODEL WARNING";
+	} else if ( cError & model::errorCodes::kLevelWarning ) {
+		sErrorPrefix = "WARNING";
+	} else if ( cError & model::errorCodes::kLevelInformation ) {
+		sErrorPrefix = "INFO";
 	}
 
 	this->writeLine( "---------------------------------------------", false, model::cli::colourError );
@@ -246,7 +247,7 @@ void CLog::writeHeader(void)
 
 	std::string sLogPath = this->getPath();
 
-	if ( sLogPath.length() > 25 ) 
+	if ( sLogPath.length() > 25 )
 		sLogPath = "..." + sLogPath.substr( sLogPath.length() - 25, 25 );
 
 	ssHeader << " Started:     " << ctime( &tNow );
@@ -342,7 +343,7 @@ void CLog::setColour( unsigned short wColour )
 	HANDLE	hOut		= GetStdHandle( STD_OUTPUT_HANDLE );
 
 	SetConsoleTextAttribute(		// Future text
-		hOut, 
+		hOut,
 		wColour
 	);
 	#endif
@@ -367,7 +368,7 @@ void CLog::resetColour()
 	HANDLE	hOut		= GetStdHandle( STD_OUTPUT_HANDLE );
 
 	SetConsoleTextAttribute(		// Future text
-		hOut, 
+		hOut,
 		FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
 	);
 	#endif
@@ -385,10 +386,10 @@ void CLog::writeDebugFile( char** cContents, unsigned int uiSegmentCount )
 	std::ofstream ofsDebug;
 	std::string sFilePath = this->getDir() + "_debug" + toString( this->uiDebugFileID ) + ".log";
 
-	try 
+	try
 	{
 		ofsDebug.open( sFilePath.c_str() );
-	} 
+	}
 	catch ( char * cError )
 	{
 		this->writeError( std::string( cError ), model::errorCodes::kLevelWarning );
@@ -402,7 +403,3 @@ void CLog::writeDebugFile( char** cContents, unsigned int uiSegmentCount )
 
 	++this->uiDebugFileID;
 }
-
-
-
-

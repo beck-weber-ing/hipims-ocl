@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -25,13 +25,13 @@
 namespace model {
 
 // Kernel configurations
-namespace schemeConfigurations{ 
+namespace schemeConfigurations{
 namespace godunovType { enum godunovType {
 	kCacheNone						= 0,		// No caching
 	kCacheEnabled					= 1			// Cache cell state data
 }; }  }
 
-namespace cacheConstraints{ 
+namespace cacheConstraints{
 namespace godunovType { enum godunovType {
 	kCacheActualSize				= 0,		// LDS of actual size
 	kCacheAllowOversize				= 1,		// Allow LDS oversizing to avoid bank conflicts
@@ -61,7 +61,7 @@ class CSchemeGodunov : public CScheme
 		virtual void		prepareAll();											// Prepare absolutely everything for a model run
 		virtual void		scheduleIteration( bool,								// Schedule an iteration of the scheme
 											   COCLDevice*,
-											   CDomain* );					
+											   CDomain* );
 		double				proposeSyncPoint( double );								// Propose a synchronisation point
 		void				forceTimestep( double );								// Force a specific timestep
 		void				setDryThreshold( double );								// Set the dry cell threshold depth
@@ -141,7 +141,7 @@ class CSchemeGodunov : public CScheme
 		cl_ulong*			ulBoundaryRelationCells;								// Boundary to cell relations
 		cl_uint*			uiBoundaryRelationSeries;								// Target series for the boundary to cell relations
 		cl_uint*			uiBoundaryParameters;									// Boundary parameters bitmask
-		
+
 		// Private functions
 		virtual bool		prepareCode();											// Prepare the code required
 		virtual void		releaseResources();										// Release OpenCL resources consumed

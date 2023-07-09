@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -16,12 +16,12 @@
  *  CFL DYNAMIC TIMESTEP
  * ------------------------------------------
  *  Calculate the timestep using a reduction
- *  procedure and increment the total model 
+ *  procedure and increment the total model
  *  time.
  * ------------------------------------------
  *
  */
-#define TIMESTEP_EARLY_LIMIT			0.1
+#define TIMESTEP_EARLY_LIMIT			1.0
 #define TIMESTEP_EARLY_LIMIT_DURATION	60.0
 #define TIMESTEP_START_MINIMUM			1E-10
 #define TIMESTEP_START_MINIMUM_DURATION	1.0
@@ -31,7 +31,7 @@
 #ifdef USE_FUNCTION_STUBS
 // Function definitions
 __kernel  __attribute__((reqd_work_group_size(1, 1, 1)))
-void tst_Advance_Normal ( 
+void tst_Advance_Normal (
 	__global	cl_double *,
 	__global	cl_double *,
 	__global	cl_double *,
@@ -52,7 +52,7 @@ void tst_ResetCounters(
 );
 
 __kernel  __attribute__((reqd_work_group_size(1, 1, 1)))
-void tst_UpdateTimestep ( 
+void tst_UpdateTimestep (
 	__global	cl_double *,
 	__global	cl_double *,
 	__global	cl_double *,
@@ -61,7 +61,7 @@ void tst_UpdateTimestep (
 );
 
 __kernel  REQD_WG_SIZE_LINE
-void tst_Reduce ( 
+void tst_Reduce (
 	__global	cl_double4 *,
 	__global	cl_double const * restrict,
 	__global	cl_double *
