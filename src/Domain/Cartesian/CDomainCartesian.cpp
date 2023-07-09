@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <boost/lexical_cast.hpp>
-
+#include <math.h>
 #include "../../common.h"
 #include "../../main.h"
 #include "../../CModel.h"
@@ -443,8 +443,8 @@ bool	CDomainCartesian::validateDomain( bool bQuiet )
 	}
 
 	// Got an offset?
-	if ( std::isnan( this->dRealOffset[ kAxisX ] ) ||
-		 std::isnan( this->dRealOffset[ kAxisY ] ) )
+	if ( isnan( this->dRealOffset[ kAxisX ] ) ||
+		 isnan( this->dRealOffset[ kAxisY ] ) )
 	{
 		if ( !bQuiet ) model::doError(
 			"Domain offset not defined",
@@ -751,12 +751,19 @@ double	CDomainCartesian::getVolume()
 	{
 		if ( this->isDoublePrecision() )
 		{
-			dVolume += ( this->dCellStates[i].s[0] - this->dBedElevations[i] ) *
-					   this->dCellResolution * this->dCellResolution;
+			dVolume += ( max(0.0, this->dCellStates[i].s[0] - this->dBedElevations[i]) ) *
+					   fabs(this->dCellResolution * this->dCellResolution);
 		} else {
-			dVolume += ( this->fCellStates[i].s[0] - this->fBedElevations[i] ) *
-					   this->dCellResolution * this->dCellResolution;
+			dVolume += ( max(0.0, this->fCellStates[i].s[0] - this->fBedElevations[i]) ) *
+					   fabs(this->dCellResolution * this->dCellResolution);
 		}
+	}
+
+	if (isnan(dVolume)) {
+		model::doError(
+			"Domain volume is no longer numeric. Computation error occured.",
+			model::errorCodes::kLevelModelStop
+		);
 	}
 
 	return dVolume;
@@ -812,7 +819,8 @@ void	CDomainCartesian::writeOutputs()
 	pScheme->readDomainAll();
 	pDevice->blockUntilFinished();
 
-	pManager->log->writeLine( "Finished domain: [" + std::to_string(getID()) + "], step: [" + std::to_string(pScheme->getCurrentTime()) + "], writing results ...");
+	pManager->log->writeLine("Current domain volume: " + std::to_string(std::fabs(this->getVolume())) + " m²");
+	pManager->log->writeLine("Finished domain: [" + std::to_string(getID()) + "], step: [" + std::to_string(pScheme->getCurrentTime()) + "], writing results ...");
 
 	for( unsigned int i = 0; i < this->pOutputs.size(); ++i )
 	{

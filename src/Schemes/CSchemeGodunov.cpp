@@ -1062,7 +1062,7 @@ void	CSchemeGodunov::prepareSimulation()
 	this->pDomain->getBoundaries()->applyDomainModifications();
 
 	// Initial volume in the domain
-	pManager->log->writeLine( "Initial domain volume: " + toString( abs((int)(this->pDomain->getVolume()) ) ) + "m3" );
+	pManager->log->writeLine( "Initial domain volume: " + toString( fabs((float)(this->pDomain->getVolume()) ) ) + " m³" );
 
 	// Copy the initial conditions
 	pManager->log->writeLine( "Copying domain data to device..." );
@@ -1702,10 +1702,6 @@ void	CSchemeGodunov::scheduleIteration(
 		oclKernelTimestepReduction->assignArgument( 3, oclBufferCellStatesAlt );
 	}
 
-	// Run the boundary kernels (each bndy has its own kernel now)
-	pDomain->getBoundaries()->applyBoundaries(bUseAlternateKernel ? oclBufferCellStatesAlt : oclBufferCellStates);
-	pDevice->queueBarrier();
-
 	// Main scheme kernel
 	oclKernelFullTimestep->scheduleExecution();
 	pDevice->queueBarrier();
@@ -1716,6 +1712,11 @@ void	CSchemeGodunov::scheduleIteration(
 		oclKernelFriction->scheduleExecution();
 		pDevice->queueBarrier();
 	}
+
+	// Run the boundary kernels (each bndy has its own kernel now)
+	pDomain->getBoundaries()->applyBoundaries(bUseAlternateKernel ? oclBufferCellStates : oclBufferCellStatesAlt);
+	// pDomain->getBoundaries()->applyBoundaries(bUseAlternateKernel ? oclBufferCellStates : oclBufferCellStatesAlt); // Note: Should not be required unless something else is broken
+	pDevice->queueBarrier();
 
 	// Timestep reduction
 	if ( this->bDynamicTimestep )
