@@ -345,7 +345,7 @@ bool	CDomainCartesian::loadInitialConditionSource( sDataSourceInfo pDataSource, 
 {
 	if ( strcmp( pDataSource.cSourceType, "raster" ) == 0 )
 	{
-			
+
 		pManager->log->writeLine( std::string("Trying to load initial condition from: ")+std::string(cDataDir)+std::string(pDataSource.cFileValue));
 		CRasterDataset	pDataset;
 		pDataset.openFileRead(
@@ -751,11 +751,11 @@ double	CDomainCartesian::getVolume()
 	{
 		if ( this->isDoublePrecision() )
 		{
-			dVolume += ( max(0.0, this->dCellStates[i].s[0] - this->dBedElevations[i]) ) *
-					   fabs(this->dCellResolution * this->dCellResolution);
+			dVolume += ( std::max(0.0, this->dCellStates[i].s[0] - this->dBedElevations[i]) ) *
+					   std::fabs(this->dCellResolution * this->dCellResolution);
 		} else {
-			dVolume += ( max(0.0, this->fCellStates[i].s[0] - this->fBedElevations[i]) ) *
-					   fabs(this->dCellResolution * this->dCellResolution);
+			dVolume += ( std::max(0.0f, this->fCellStates[i].s[0] - this->fBedElevations[i]) ) *
+					   std::fabs(this->dCellResolution * this->dCellResolution);
 		}
 	}
 

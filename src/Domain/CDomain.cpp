@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -263,7 +263,7 @@ void	CDomain::setStateValue( unsigned long ulCellID, unsigned char ucIndex, doub
  */
 double	CDomain::getBedElevation( unsigned long ulCellID )
 {
-	if ( this->ucFloatSize == 4 ) 
+	if ( this->ucFloatSize == 4 )
 		return static_cast<double>( this->fBedElevations[ ulCellID ] );
 	return this->dBedElevations[ ulCellID ];
 }
@@ -273,7 +273,7 @@ double	CDomain::getBedElevation( unsigned long ulCellID )
  */
 double	CDomain::getManningCoefficient( unsigned long ulCellID )
 {
-	if ( this->ucFloatSize == 4 ) 
+	if ( this->ucFloatSize == 4 )
 		return static_cast<double>( this->fManningValues[ ulCellID ] );
 	return this->dManningValues[ ulCellID ];
 }
@@ -283,7 +283,7 @@ double	CDomain::getManningCoefficient( unsigned long ulCellID )
  */
 double	CDomain::getStateValue( unsigned long ulCellID, unsigned char ucIndex )
 {
-	if ( this->ucFloatSize == 4 ) 
+	if ( this->ucFloatSize == 4 )
 		return static_cast<double>( this->fCellStates[ ulCellID ].s[ ucIndex ] );
 	return this->dCellStates[ ulCellID ].s[ ucIndex ];
 }
@@ -291,8 +291,8 @@ double	CDomain::getStateValue( unsigned long ulCellID, unsigned char ucIndex )
 /*
  *  Handle initial conditions input data for a cell (usually from a raster dataset)
  */
-void	CDomain::handleInputData( 
-			unsigned long	ulCellID, 
+void	CDomain::handleInputData(
+			unsigned long	ulCellID,
 			double			dValue,
 			unsigned char	ucValue,
 			unsigned char	ucRounding
@@ -304,28 +304,28 @@ void	CDomain::handleInputData(
 	switch( ucValue )
 	{
 	case model::rasterDatasets::dataValues::kBedElevation:
-		this->setBedElevation( 
-			ulCellID, 
-			Util::round( dValue, ucRounding ) 
+		this->setBedElevation(
+			ulCellID,
+			Util::round( dValue, ucRounding )
 		);
-		this->setStateValue( 
-			ulCellID, 
-			model::domainValueIndices::kValueFreeSurfaceLevel, 
-			Util::round( dValue, ucRounding ) 
+		this->setStateValue(
+			ulCellID,
+			model::domainValueIndices::kValueFreeSurfaceLevel,
+			Util::round( dValue, ucRounding )
 		);
 		if ( dValue < dMinTopo && dValue != -9999.0 ) dMinTopo = dValue;
 		if ( dValue > dMaxTopo && dValue != -9999.0 ) dMaxTopo = dValue;
 		break;
 	case model::rasterDatasets::dataValues::kFreeSurfaceLevel:
-		this->setStateValue( 
+		this->setStateValue(
 			ulCellID,
-			model::domainValueIndices::kValueFreeSurfaceLevel, 
-			Util::round( dValue, ucRounding ) 
+			model::domainValueIndices::kValueFreeSurfaceLevel,
+			Util::round( dValue, ucRounding )
 		);
-		this->setStateValue( 
-			ulCellID, 
-			model::domainValueIndices::kValueMaxFreeSurfaceLevel, 
-			Util::round( dValue, ucRounding ) 
+		this->setStateValue(
+			ulCellID,
+			model::domainValueIndices::kValueMaxFreeSurfaceLevel,
+			Util::round( dValue, ucRounding )
 		);
 		if ( dValue - this->getBedElevation( ulCellID ) < dMinDepth && this->getBedElevation( ulCellID ) > -9999.0 && dValue > -9999.0 ) dMinDepth = dValue;
 		if ( dValue - this->getBedElevation( ulCellID ) > dMaxDepth && this->getBedElevation( ulCellID ) > -9999.0 && dValue > -9999.0 ) dMaxDepth = dValue;
@@ -333,15 +333,15 @@ void	CDomain::handleInputData(
 		if ( dValue > dMaxFSL && this->getBedElevation( ulCellID ) > -9999.0 && dValue > -9999.0 ) dMaxFSL = dValue;
 		break;
 	case model::rasterDatasets::dataValues::kDepth:
-		this->setStateValue( 
-			ulCellID, 
-			model::domainValueIndices::kValueFreeSurfaceLevel, 
-			Util::round( ( this->getBedElevation( ulCellID ) + max(-1e-12, dValue) ), ucRounding ) 
+		this->setStateValue(
+			ulCellID,
+			model::domainValueIndices::kValueFreeSurfaceLevel,
+			Util::round( ( this->getBedElevation( ulCellID ) + std::max(-1e-12, dValue) ), ucRounding )
 		);
-		this->setStateValue( 
-			ulCellID, 
-			model::domainValueIndices::kValueMaxFreeSurfaceLevel, 
-			Util::round( ( this->getBedElevation( ulCellID ) + max(-1e-12, dValue) ), ucRounding )
+		this->setStateValue(
+			ulCellID,
+			model::domainValueIndices::kValueMaxFreeSurfaceLevel,
+			Util::round( ( this->getBedElevation( ulCellID ) + std::max(-1e-12, dValue) ), ucRounding )
 		);
 		if ( dValue + this->getBedElevation( ulCellID ) < dMinFSL && this->getBedElevation( ulCellID ) > -9999.0 && dValue > -9999.0 ) dMinFSL = dValue;
 		if ( dValue + this->getBedElevation( ulCellID ) > dMaxFSL && this->getBedElevation( ulCellID ) > -9999.0 && dValue > -9999.0 ) dMaxFSL = dValue;
@@ -352,45 +352,45 @@ void	CDomain::handleInputData(
 		// Cells are disabled using a free-surface level of -9999
 		if ( dValue > 1.0 && dValue < 9999.0 )
 		{
-			this->setStateValue( 
-				ulCellID, 
-				model::domainValueIndices::kValueMaxFreeSurfaceLevel, 
-				Util::round( ( -9999.0 ), ucRounding ) 
+			this->setStateValue(
+				ulCellID,
+				model::domainValueIndices::kValueMaxFreeSurfaceLevel,
+				Util::round( ( -9999.0 ), ucRounding )
 			);
 		}
 		break;
 	case model::rasterDatasets::dataValues::kDischargeX:
-		this->setStateValue( 
+		this->setStateValue(
 			ulCellID,
-			model::domainValueIndices::kValueDischargeX, 
-			Util::round( dValue, ucRounding ) 
+			model::domainValueIndices::kValueDischargeX,
+			Util::round( dValue, ucRounding )
 		);
 		break;
 	case model::rasterDatasets::dataValues::kDischargeY:
-		this->setStateValue( 
-			ulCellID, 
-			model::domainValueIndices::kValueDischargeY, 
-			Util::round( dValue, ucRounding ) 
+		this->setStateValue(
+			ulCellID,
+			model::domainValueIndices::kValueDischargeY,
+			Util::round( dValue, ucRounding )
 		);
 		break;
 	case model::rasterDatasets::dataValues::kVelocityX:
-		this->setStateValue( 
-			ulCellID, 
-			model::domainValueIndices::kValueDischargeX, 
+		this->setStateValue(
+			ulCellID,
+			model::domainValueIndices::kValueDischargeX,
 			Util::round( dValue * ( this->getStateValue( ulCellID, model::domainValueIndices::kValueFreeSurfaceLevel ) - this->getBedElevation( ulCellID ) ), ucRounding )
 		);
 		break;
 	case model::rasterDatasets::dataValues::kVelocityY:
-		this->setStateValue( 
-			ulCellID, 
-			model::domainValueIndices::kValueDischargeY, 
-			Util::round( dValue * ( this->getStateValue( ulCellID, model::domainValueIndices::kValueFreeSurfaceLevel ) - this->getBedElevation( ulCellID ) ), ucRounding ) 
+		this->setStateValue(
+			ulCellID,
+			model::domainValueIndices::kValueDischargeY,
+			Util::round( dValue * ( this->getStateValue( ulCellID, model::domainValueIndices::kValueFreeSurfaceLevel ) - this->getBedElevation( ulCellID ) ), ucRounding )
 		);
 		break;
 	case model::rasterDatasets::dataValues::kManningCoefficient:
-		this->setManningCoefficient( 
-			ulCellID, 
-			Util::round( dValue, ucRounding ) 
+		this->setManningCoefficient(
+			ulCellID,
+			Util::round( dValue, ucRounding )
 		);
 		break;
 	}
@@ -463,21 +463,21 @@ CDomainBase::mpiSignalDataProgress	CDomain::getDataProgress()
  */
 unsigned char	CDomain::getDataValueCode( char* cSourceValue )
 {
-	if ( strstr( cSourceValue, "dem" ) != NULL )		
+	if ( strstr( cSourceValue, "dem" ) != NULL )
 		return model::rasterDatasets::dataValues::kBedElevation;
-	if ( strstr( cSourceValue, "maxdepth" ) != NULL )		
+	if ( strstr( cSourceValue, "maxdepth" ) != NULL )
 	{
 		return model::rasterDatasets::dataValues::kMaxDepth;
 	}
-	else if ( strstr( cSourceValue, "depth" ) != NULL )		
+	else if ( strstr( cSourceValue, "depth" ) != NULL )
 	{
 		return model::rasterDatasets::dataValues::kDepth;
 	}
-	if ( strstr( cSourceValue, "disabled" ) != NULL )		
+	if ( strstr( cSourceValue, "disabled" ) != NULL )
 		return model::rasterDatasets::dataValues::kDisabledCells;
-	if ( strstr( cSourceValue, "dischargex" ) != NULL )		
+	if ( strstr( cSourceValue, "dischargex" ) != NULL )
 		return model::rasterDatasets::dataValues::kDischargeX;
-	if ( strstr( cSourceValue, "dischargey" ) != NULL )		
+	if ( strstr( cSourceValue, "dischargey" ) != NULL )
 		return model::rasterDatasets::dataValues::kDischargeY;
 	if ( strstr( cSourceValue, "maxfsl" ) != NULL )
 	{
@@ -487,15 +487,15 @@ unsigned char	CDomain::getDataValueCode( char* cSourceValue )
 	{
 		return model::rasterDatasets::dataValues::kFreeSurfaceLevel;
 	}
-	if ( strstr( cSourceValue, "manningcoefficient" ) != NULL )		
+	if ( strstr( cSourceValue, "manningcoefficient" ) != NULL )
 		return model::rasterDatasets::dataValues::kManningCoefficient;
-	if ( strstr( cSourceValue, "velocityx" ) != NULL )		
+	if ( strstr( cSourceValue, "velocityx" ) != NULL )
 		return model::rasterDatasets::dataValues::kVelocityX;
-	if ( strstr( cSourceValue, "velocityy" ) != NULL )		
+	if ( strstr( cSourceValue, "velocityy" ) != NULL )
 		return model::rasterDatasets::dataValues::kVelocityY;
-	if ( strstr( cSourceValue, "maxvelocity" ) != NULL )		
+	if ( strstr( cSourceValue, "maxvelocity" ) != NULL )
 		return model::rasterDatasets::dataValues::kMaxVelocity;
-	if ( strstr( cSourceValue, "froude" ) != NULL )		
+	if ( strstr( cSourceValue, "froude" ) != NULL )
 		return model::rasterDatasets::dataValues::kFroudeNumber;
 
 	return 255;
