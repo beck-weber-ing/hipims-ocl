@@ -39,6 +39,3 @@ _debug*.log
 # Exceptions
 !tools/**/*.exe
 !tools/**/*.dll
-
-# IDEs
-.vs

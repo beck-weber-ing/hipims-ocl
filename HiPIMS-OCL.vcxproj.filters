@@ -117,9 +117,6 @@
     <ClCompile Include="src\schemes\CSchemeMUSCLHancock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Boundaries\CBoundarySimplePipe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\CLCode.h">
@@ -237,9 +234,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\schemes\CSchemeMUSCLHancock.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Boundaries\CBoundarySimplePipe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -65,7 +65,6 @@ protected:
 	double							dTotalVolume;
 	double							dTimeseriesLength;
 	double							dTimeseriesInterval;
-	double							dRatio;
 
 	sTimeseriesUniform*				pTimeseries;
 	unsigned int					uiTimeseriesLength;

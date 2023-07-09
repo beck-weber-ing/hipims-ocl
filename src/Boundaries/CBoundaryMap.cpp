@@ -26,7 +26,6 @@
 #include "CBoundaryCell.h"
 #include "CBoundaryUniform.h"
 #include "CBoundaryGridded.h"
-#include "CBoundarySimplePipe.h"
 #include "../Datasets/CXMLDataset.h"
 #include "../Domain/CDomainManager.h"
 #include "../Domain/CDomain.h"
@@ -81,8 +80,8 @@ void CBoundaryMap::applyBoundaries(COCLBuffer* pCellBuffer)
 }
 
 /*
- *	Stream the buffer (i.e. prepare resources for the current time period)
- */
+*	Stream the buffer (i.e. prepare resources for the current time period)
+*/
 void CBoundaryMap::streamBoundaries(double dTime)
 {
 	for (mapBoundaries_t::iterator it = mapBoundaries.begin(); it != mapBoundaries.end(); it++)
@@ -106,8 +105,7 @@ bool	CBoundaryMap::setupFromConfig( XMLElement *pConfiguration )
 {
 	XMLElement					*pBoundariesElement,		// <boundaryConditions>
 								*pTimeSeriesElement,		// <timeseries .../>
-								*pDomainEdgeElement,		// <domainEdge .../>
-								*pStructureElement;			// <structure .../>
+								*pDomainEdgeElement;		// <domainEdge .../>
 	CCSVDataset					*pMapFile = NULL;
 
 	pBoundariesElement = pConfiguration->FirstChildElement("boundaryConditions");
@@ -117,18 +115,14 @@ bool	CBoundaryMap::setupFromConfig( XMLElement *pConfiguration )
 		return true;
 	}
 
-	char						*cSourceDir, *cMapFile, *cMapType;
+	char						*cSourceDir, *cMapFile;
 	std::string					sSourceDir, sMapFile;
 
 	Util::toNewString(&cSourceDir, pBoundariesElement->Attribute("sourceDir"));
 	Util::toNewString(&cMapFile, pBoundariesElement->Attribute("mapFile"));
-	Util::toNewString(&cMapType, pBoundariesElement->Attribute("mapType"));
 	sSourceDir	= (cSourceDir == NULL || strcmp(cSourceDir, "") == 0 ? "./" : (std::string(cSourceDir) + "/"));
 	sMapFile	= (cMapFile == NULL ? "" : (sSourceDir + std::string(cMapFile)));
-
-	bool mapUsesCoordinates = cMapType != NULL && strcmp(cMapType, "coordinates") == 0;
-
-	delete cSourceDir, cMapFile, cMapType;
+	delete cSourceDir, cMapFile;
 
 	// ---
 	//  Map file
@@ -182,7 +176,7 @@ bool	CBoundaryMap::setupFromConfig( XMLElement *pConfiguration )
 			}
 			else {
 				if ( pMapFile != NULL )
-					pNewBoundary->importMap(pMapFile, mapUsesCoordinates);
+					pNewBoundary->importMap(pMapFile);
 			}
 
 			// Store the new boundary in the unordered map
@@ -206,69 +200,6 @@ bool	CBoundaryMap::setupFromConfig( XMLElement *pConfiguration )
 			);
 		}
 		pTimeSeriesElement = pTimeSeriesElement->NextSiblingElement("timeseries");
-
-		delete cBoundaryType;
-	}
-
-	// ---
-	//  Structure boundaries
-	// ---
-	pStructureElement = pBoundariesElement->FirstChildElement("structure");
-
-	while (pStructureElement != NULL)
-	{
-		char	*cBoundaryType;
-		Util::toLowercase(&cBoundaryType, pStructureElement->Attribute("type"));
-
-		if (cBoundaryType != NULL)
-		{
-
-			CBoundary *pNewBoundary = NULL;
-
-			if (strcmp(cBoundaryType, "simple-pipe") == 0)
-			{
-				pNewBoundary = static_cast<CBoundary*>(new CBoundarySimplePipe(this->pDomain));
-			}
-			else 
-			{
-				model::doError(
-					"Ignored boundary structure of unrecognised type.",
-					model::errorCodes::kLevelWarning
-				);
-			}
-
-			// Configure the new boundary
-			if (pNewBoundary == NULL || !pNewBoundary->setupFromConfig(pStructureElement, sSourceDir))
-			{
-				model::doError(
-					"Encountered an error loading a structure definition.",
-					model::errorCodes::kLevelWarning
-				);
-			}
-
-			// Store the new structure in the unordered map
-			if (pNewBoundary != NULL)
-			{
-				// TODO: Add unique name boundary name check
-
-				mapBoundaries[pNewBoundary->getName()] = pNewBoundary;
-				pManager->log->writeLine("Loaded new structure '" + pNewBoundary->getName() + "'.");
-			}
-			else {
-				model::doError(
-					"Encountered a structure type which is not yet available.",
-					model::errorCodes::kLevelWarning
-				);
-			}
-
-		}
-		else {
-			model::doError(
-				"Ignored structure with no type defined.",
-				model::errorCodes::kLevelWarning
-			);
-		}
-		pStructureElement = pStructureElement->NextSiblingElement("structure");
 
 		delete cBoundaryType;
 	}

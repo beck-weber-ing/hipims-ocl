@@ -230,7 +230,7 @@ void CBoundaryCell::importTimeseries(CCSVDataset *pCSV)
 /*
  *	Import cell map data from a CSV file
  */
-void CBoundaryCell::importMap(CCSVDataset *pCSV, bool realCoordinates)
+void CBoundaryCell::importMap(CCSVDataset *pCSV)
 {
 	unsigned int uiIndex = 0;
 	bool bInvalidEntries = false;
@@ -241,16 +241,6 @@ void CBoundaryCell::importMap(CCSVDataset *pCSV, bool realCoordinates)
 
 	this->pRelations = new sRelationCell[pCSV->getLength()];
 	this->uiRelationCount = 0;
-
-	CDomainCartesian* pDomain = static_cast<CDomainCartesian*>(this->pDomain);
-
-	if (pDomain->isRemote()) {
-		return;
-	}
-
-	double dCornerN, dCornerE, dCornerS, dCornerW, dResolution;
-	pDomain->getCellResolution(&dResolution);
-	pDomain->getRealExtent(&dCornerN, &dCornerE, &dCornerS, &dCornerW);
 
 	for (vector<vector<std::string>>::const_iterator it = pCSV->begin();
 		it != pCSV->end();
@@ -267,15 +257,8 @@ void CBoundaryCell::importMap(CCSVDataset *pCSV, bool realCoordinates)
 		{
 			try
 			{
-				if (realCoordinates) {
-					this->pRelations[uiIndex].uiCellX = floor((boost::lexical_cast<double>((*it)[0]) - dCornerW) / dResolution);
-					this->pRelations[uiIndex].uiCellY = floor((boost::lexical_cast<double>((*it)[1]) - dCornerS) / dResolution);
-				}
-				else
-				{
-					this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
-					this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
-				}
+				this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
+				this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
 				uiIndex++;
 			}
 			catch (boost::bad_lexical_cast)
@@ -287,15 +270,8 @@ void CBoundaryCell::importMap(CCSVDataset *pCSV, bool realCoordinates)
 			{
 				if ((*it)[2] == this->getName())
 				{
-					if (realCoordinates) {
-						this->pRelations[uiIndex].uiCellX = floor((boost::lexical_cast<double>((*it)[0]) - dCornerW) / dResolution);
-						this->pRelations[uiIndex].uiCellY = floor((boost::lexical_cast<double>((*it)[1]) - dCornerS) / dResolution);
-					}
-					else
-					{
-						this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
-						this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
-					}
+					this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
+					this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
 					uiIndex++;
 				}
 			}
