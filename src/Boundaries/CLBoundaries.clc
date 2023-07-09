@@ -19,6 +19,7 @@
  * ------------------------------------------
  *
  */
+#define DEBUG_OUTPUT 1
 
 __kernel void bdy_Cell (
 	__constant		sBdyCellConfiguration *		pConfiguration,
@@ -279,6 +280,8 @@ __kernel void bdy_SimplePipe (
 	__private cl_double					dEndVelocityY   = pEndData.w / max(VERY_SMALL, pEndData.x - dEndBed);
 	__private cl_double					dPipeDischarge	= 0.0;
 
+	__constant cl_ulong					maxIterations = 5000;
+
 	#ifdef DEBUG_OUTPUT
 	printf("-- SIMPLE PIPE BOUNDARY --\n");
 	printf(" Configuration:\n");
@@ -346,7 +349,7 @@ __kernel void bdy_SimplePipe (
 	}
 
 	// Iterative process for Darcy-Weisbach
-	while (uiIterations < 500 && fabs(dError) > 0.0001) {
+	while (uiIterations < maxIterations && fabs(dError) > 0.0001) {
 		uiIterations				+= 1;
 
 		// Apply a number of methods to come up with sensible friction head losses
@@ -374,7 +377,7 @@ __kernel void bdy_SimplePipe (
 			dFrictionHeadLossEst = dLastFrictionHeadLoss * 2.0 / 3.0;
 		}
 
-		dVelocity					= -2.0
+		dVelocity = -2.0
 			* sqrt(2.0 * GRAVITY * dPartialShapeFactor * pConfig.diameter * dFrictionHeadLossEst / pConfig.length)
 			* log10(
 				 ( (pConfig.roughness / 1000.0) / (3.7 * dPartialShapeFactor * pConfig.diameter) )
@@ -392,7 +395,7 @@ __kernel void bdy_SimplePipe (
 		#endif
 	}
 
-	if (uiIterations >= 500 || fabs(dError) > 0.0001) {
+	if (uiIterations >= maxIterations || fabs(dError) > 0.0001) {
 		// Force NaN to terminate simulation
 		dPipeDischarge = sqrt(-1.0);
 	}
