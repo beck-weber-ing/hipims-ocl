@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -28,7 +28,7 @@
 
 using std::vector;
 
-/* 
+/*
  *  Constructor
  */
 CBoundarySimplePipe::CBoundarySimplePipe( CDomain* pDomain )
@@ -51,7 +51,7 @@ CBoundarySimplePipe::~CBoundarySimplePipe()
  */
 bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBoundarySourceDir)
 {
-	char *cBoundaryType, 
+	char *cBoundaryType,
 		 *cBoundaryName,
 		 *cBoundaryStartX,
 		 *cBoundaryStartY,
@@ -119,9 +119,7 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 		double endY = boost::lexical_cast<double>(cBoundaryEndY);
 		this->endCellX = floor((endX - dCornerW) / dResolution);
 		this->endCellY = floor((endY - dCornerS) / dResolution);
-	}
-	else
-	{
+	} else {
 		this->endCellX = this->startCellX + ceil(fabs(offsetX / dResolution)) * (offsetX > 0 ? 1.0 : -1.0);
 		this->endCellY = this->startCellY + ceil(fabs(offsetY / dResolution)) * (offsetY > 0 ? 1.0 : -1.0);
 	}
@@ -138,9 +136,9 @@ void CBoundarySimplePipe::importMap(CCSVDataset *pCSV)
 }
 
 void CBoundarySimplePipe::prepareBoundary(
-			COCLDevice* pDevice, 
+			COCLDevice* pDevice,
 			COCLProgram* pProgram,
-			COCLBuffer* pBufferBed, 
+			COCLBuffer* pBufferBed,
 			COCLBuffer* pBufferManning,
 			COCLBuffer* pBufferTime,
 			COCLBuffer* pBufferTimeHydrological,
@@ -162,7 +160,7 @@ void CBoundarySimplePipe::prepareBoundary(
 		pConfiguration.uiStartCellY = this->startCellY;
 		pConfiguration.uiEndCellX = this->endCellX;
 		pConfiguration.uiEndCellY = this->endCellY;
-		
+
 		this->pBufferConfiguration = new COCLBuffer(
 			"Bdy_" + this->sName + "_Conf",
 			pProgram,
@@ -258,4 +256,3 @@ void CBoundarySimplePipe::cleanBoundary()
 	// ...
 	// TODO: Is this needed? Most stuff is cleaned in the destructor
 }
-
