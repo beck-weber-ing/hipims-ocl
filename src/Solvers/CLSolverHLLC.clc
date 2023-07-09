@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -47,11 +47,11 @@ cl_double4 riemannSolver(
 		pFlux = (cl_double4){
 			0.0,
 				uiDirectionVector.S0 * 0.5 * GRAVITY * (
-				((pLeft.S0 + pRight.S0) / 2) * ((pLeft.S0 + pRight.S0) / 2) -
+				((pLeft.S0 + pRight.S0) * 0.5) * ((pLeft.S0 + pRight.S0) * 0.5) -
 				pLeft.S6 * (pLeft.S0 + pRight.S0)
 				),
 				uiDirectionVector.S1 * 0.5 * GRAVITY * (
-				((pLeft.S0 + pRight.S0) / 2) * ((pLeft.S0 + pRight.S0) / 2) -
+				((pLeft.S0 + pRight.S0) * 0.5) * ((pLeft.S0 + pRight.S0) * 0.5) -
 				pLeft.S6 * (pLeft.S0 + pRight.S0)
 				),
 				0.0
@@ -68,11 +68,11 @@ cl_double4 riemannSolver(
 		pFlux = (cl_double4)(
 			0.0,
 			uiDirectionVector.S0 * 0.5 * GRAVITY * (
-			((pLeft.S0 + pRight.S0) / 2) * ((pLeft.S0 + pRight.S0) / 2) -
+			((pLeft.S0 + pRight.S0) * 0.5) * ((pLeft.S0 + pRight.S0) * 0.5) -
 			pLeft.S6 * (pLeft.S0 + pRight.S0)
 			),
 			uiDirectionVector.S1 * 0.5 * GRAVITY * (
-			((pLeft.S0 + pRight.S0) / 2) * ((pLeft.S0 + pRight.S0) / 2) -
+			((pLeft.S0 + pRight.S0) * 0.5) * ((pLeft.S0 + pRight.S0) * 0.5) -
 			pLeft.S6 * (pLeft.S0 + pRight.S0)
 			),
 			0.0
@@ -106,23 +106,23 @@ cl_double4 riemannSolver(
 			sqrt(GRAVITY * pRight.S1)														// Right
 		};
 #else
-	dVel    = (cl_double2)( 
+	dVel    = (cl_double2)(
 				uiDirectionVector.S0 * pLeft.S4   + uiDirectionVector.S1 * pLeft.S5,		// Left
 				uiDirectionVector.S0 * pRight.S4  + uiDirectionVector.S1 * pRight.S5		// Right
 			);
-	dDis    = (cl_double2)( 
+	dDis    = (cl_double2)(
 				uiDirectionVector.S0 * pLeft.S2   + uiDirectionVector.S1 * pLeft.S3,		// Left
 				uiDirectionVector.S0 * pRight.S2  + uiDirectionVector.S1 * pRight.S3		// Right
 			);
-	dA      = (cl_double2)( 
+	dA      = (cl_double2)(
 				sqrt( GRAVITY * pLeft.S1  ),												// Left
 				sqrt( GRAVITY * pRight.S1 )													// Right
 			);
 #endif
 
-	a_Avg	= ( dA.S0   + dA.S1   ) / 2;
-	H_star	= ( ( a_Avg + ( dVel.S0 - dVel.S1 )/4 ) * ( a_Avg + ( dVel.S0 - dVel.S1 )/4 ) ) / GRAVITY;
-	U_star	= ( dVel.S0 + dVel.S1 ) / 2 + dA.S0 - dA.S1;
+	a_Avg	= ( dA.S0   + dA.S1   ) * 0.5;
+	H_star	= ( ( a_Avg + ( dVel.S0 - dVel.S1 ) * 0.25 ) * ( a_Avg + ( dVel.S0 - dVel.S1 ) * .25 ) ) * GRAVITY_R;
+	U_star	= ( dVel.S0 + dVel.S1 ) * 0.5 + dA.S0 - dA.S1;
 	A_star	= sqrt( GRAVITY * H_star );
 
 	// Calculate speed estimates
@@ -132,12 +132,14 @@ cl_double4 riemannSolver(
 	} else {
 		s_L = ( ( ( dVel.S0 - dA.S0 ) > (U_star - A_star) ) ? ( U_star - A_star ) : ( dVel.S0 - dA.S0 ) );
 	}
+
 	if ( pRight.S1 < VERY_SMALL )
 	{
 		s_R = dVel.S0 + 2 * dA.S0;
 	} else {
 		s_R = ( ( ( dVel.S1 + dA.S1 ) < ( U_star + A_star ) ) ? ( U_star + A_star ) : ( dVel.S1 + dA.S1 ) );
 	}
+
 	s_M = ( s_L * pRight.S1 * ( dVel.S1 - s_R ) - s_R * pLeft.S1 * ( dVel.S0-s_L ) ) /
 			( pRight.S1 * ( dVel.S1 - s_R ) - pLeft.S1 * ( dVel.S0 - s_L ) );
 
@@ -176,7 +178,7 @@ cl_double4 riemannSolver(
 	bMiddle_2		= s_L <  0.0 && s_R >= 0.0 && !bMiddle_1;
 	bRight			= !bLeft && !bMiddle_1 && !bMiddle_2;
 
-	if ( bLeft )  
+	if ( bLeft )
 	{
 		#ifdef DEBUG_OUTPUT
 		if ( bDebug )
@@ -186,7 +188,7 @@ cl_double4 riemannSolver(
 		#endif
 		return pFluxL;
 	}
-	if ( bRight ) 
+	else if ( bRight )
 	{
 		#ifdef DEBUG_OUTPUT
 		if ( bDebug )
@@ -212,8 +214,7 @@ cl_double4 riemannSolver(
 			0.0
 		};
 	}
-
-	if (bMiddle_2)
+	else if (bMiddle_2)
 	{
 		pFlux = (cl_double4){
 			F1_M,
@@ -232,8 +233,7 @@ cl_double4 riemannSolver(
 			0.0
 		);
 	}
-
-	if ( bMiddle_2 )
+	else if ( bMiddle_2 )
 	{
 		pFlux = (cl_double4)(
 			F1_M,

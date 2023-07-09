@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -24,7 +24,7 @@
 #include "../../common.h"
 #include "COCLProgram.h"
 #include "COCLKernel.h"
-
+#include "../cl_error.h"
 /*
  *  Constructor
  */
@@ -47,7 +47,7 @@ COCLProgram::COCLProgram(
 COCLProgram::~COCLProgram()
 {
 	if ( this->clProgram != NULL )
-		clReleaseProgram( this->clProgram );
+		cl(clReleaseProgram( this->clProgram ));
 
 	clearCode();
 }
@@ -223,7 +223,7 @@ COCLKernel* COCLProgram::getKernel(
 	)
 {
 	if ( !this->bCompiled ) return NULL;
-	
+
 	return new COCLKernel(
 		this,
 		std::string( cKernelName )
@@ -292,7 +292,7 @@ std::string COCLProgram::getCompileLog()
  *  Add a compiler argument to the list
  */
 void COCLProgram::addCompileParameter(
-		std::string sParameter 
+		std::string sParameter
 	)
 {
 	sCompileParameters += " " + sParameter;
@@ -369,7 +369,7 @@ OCL_RAW_CODE	COCLProgram::getExtensionsHeader()
 		if( std::strcmp( this->device->getVendor(), "Advanced Micro Devices, Inc." ) == 0 &&
 			this->device->getDeviceType() &	CL_DEVICE_TYPE_GPU &&											// Support introduced in new AMD drivers for the proper extension
 			std::strstr( this->device->getOCLVersion(), "OpenCL 1.0" ) == NULL &&
-			std::strstr( this->device->getOCLVersion(), "OpenCL 1.1" ) == NULL 
+			std::strstr( this->device->getOCLVersion(), "OpenCL 1.1" ) == NULL
 		   )
 		{
 			ssHeader << "#pragma OPENCL EXTENSION cl_amd_fp64 : enable" << std::endl;
@@ -412,4 +412,3 @@ void	COCLProgram::setForcedSinglePrecision( bool bForce )
 {
 	this->bForceSinglePrecision	= bForce;
 }
-

@@ -106,7 +106,8 @@ bool CBoundaryGridded::setupFromConfig(XMLElement* pElement, std::string sBounda
 	}
 
 	// Allocate memory for the array of gridded inputs
-	this->uiTimeseriesLength = static_cast<unsigned int>(ceil(pManager->getSimulationLength() / dInterval)) + 1;
+	//this->uiTimeseriesLength = static_cast<unsigned int>(ceil(pManager->getSimulationLength() / dInterval)) + 1;
+	this->uiTimeseriesLength = static_cast<unsigned int>(floor(pManager->getSimulationLength() / dInterval)) + 1;
 	this->pTimeseries = new CBoundaryGriddedEntry*[ this->uiTimeseriesLength ];
 	SBoundaryGridTransform* pTransform = NULL;
 
@@ -128,7 +129,7 @@ bool CBoundaryGridded::setupFromConfig(XMLElement* pElement, std::string sBounda
 		if (!Util::fileExists(sFilename.c_str()))
 		{
 			model::doError(
-				"Gridded boundary raster missing for " + Util::secondsToTime( dTime ),
+				"Gridded boundary raster missing for " + Util::secondsToTime( dTime ) + " with filename '" + sFilename + "'",
 				model::errorCodes::kLevelWarning
 			);
 			this->dTimeseriesLength = min( this->dTimeseriesLength, dTime );

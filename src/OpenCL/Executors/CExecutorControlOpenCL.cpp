@@ -7,12 +7,12 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
  * ------------------------------------------
- *  Handles cascading execution and enumeration 
+ *  Handles cascading execution and enumeration
  *  on OpenCL devices
  * ------------------------------------------
  *
@@ -47,7 +47,7 @@ void CExecutorControlOpenCL::setupFromConfig( XMLElement* pXNode )
 	XMLElement*		pParameter			= pXNode->FirstChildElement();
 	char			*cParameterName		= NULL;
 	char			*cParameterValue	= NULL;
-	unsigned int	uiDeviceFilter		= model::filters::devices::devicesCPU | 
+	unsigned int	uiDeviceFilter		= model::filters::devices::devicesCPU |
 										  model::filters::devices::devicesGPU |
 										  model::filters::devices::devicesAPU;
 
@@ -57,16 +57,16 @@ void CExecutorControlOpenCL::setupFromConfig( XMLElement* pXNode )
 		Util::toLowercase( &cParameterValue, pParameter->Attribute( "value" ) );
 
 		if ( strcmp( cParameterName, "devicefilter" ) == 0 )
-		{ 
+		{
 			uiDeviceFilter = 0;
-			if ( strstr( cParameterValue, "cpu" ) != NULL )	
+			if ( strstr( cParameterValue, "cpu" ) != NULL )
 				uiDeviceFilter |= model::filters::devices::devicesCPU;
-			if ( strstr( cParameterValue, "gpu" ) != NULL )	
+			if ( strstr( cParameterValue, "gpu" ) != NULL )
 				uiDeviceFilter |= model::filters::devices::devicesGPU;
-			if ( strstr( cParameterValue, "apu" ) != NULL )	
+			if ( strstr( cParameterValue, "apu" ) != NULL )
 				uiDeviceFilter |= model::filters::devices::devicesAPU;
 		}
-		else 
+		else
 		{
 			model::doError(
 				"Unrecognised parameter: " + std::string( cParameterName ),
@@ -116,15 +116,15 @@ bool CExecutorControlOpenCL::getPlatforms(void)
 	if ( this->clDeviceTotal > 0 )
 		model::doError( "An attempt to obtain OpenCL platforms for a second time is invalid.", model::errorCodes::kLevelFatal );
 
-	cl_int			iErrorID;
+	cl_int		iErrorID;
 	unsigned int	iPlatformID;
 
 	iErrorID = clGetPlatformIDs( NULL, NULL, &this->clPlatformCount );
 
-	if ( iErrorID != CL_SUCCESS ) 
+	if ( iErrorID != CL_SUCCESS )
 	{
-		model::doError( 
-			"Error obtaining the number of CL platforms.", 
+		model::doError(
+			"Error obtaining the number of CL platforms.",
 			model::errorCodes::kLevelFatal
 		);
 		return false;
@@ -135,11 +135,11 @@ bool CExecutorControlOpenCL::getPlatforms(void)
 
 	iErrorID = clGetPlatformIDs( this->clPlatformCount, this->clPlatforms, &this->clPlatformCount );
 
-	if ( iErrorID != CL_SUCCESS ) 
+	if ( iErrorID != CL_SUCCESS )
 	{
-		model::doError( 
-			"Error obtaining the CL platforms.", 
-			model::errorCodes::kLevelFatal 
+		model::doError(
+			"Error obtaining the CL platforms.",
+			model::errorCodes::kLevelFatal
 		);
 		return false;
 	}
@@ -157,10 +157,10 @@ bool CExecutorControlOpenCL::getPlatforms(void)
 	{
 		iErrorID = clGetDeviceIDs( this->clPlatforms[ iPlatformID ], CL_DEVICE_TYPE_ALL, 0, NULL, &this->platformInfo[ iPlatformID ].uiDeviceCount );
 
-		if ( iErrorID != CL_SUCCESS ) 
+		if ( iErrorID != CL_SUCCESS )
 		{
-			model::doError( 
-				"Error obtaining the number of devices on each CL platform.", 
+			model::doError(
+				"Error obtaining the number of devices on each CL platform.",
 				model::errorCodes::kLevelFatal
 			);
 			return false;
@@ -189,12 +189,12 @@ void CExecutorControlOpenCL::logPlatforms(void)
 	{
 		sPlatformNo = "  " + toString( iPlatformID + 1 ) + ". ";
 
-		pLog->writeLine( 
+		pLog->writeLine(
 			sPlatformNo + this->platformInfo[ iPlatformID ].cName,
 			true,
 			wColour
 		);
-		pLog->writeLine( 
+		pLog->writeLine(
 			std::string( sPlatformNo.size(), ' ' ) + std::string( this->platformInfo[ iPlatformID ].cVersion ) + " with " + toString( this->platformInfo[ iPlatformID ].uiDeviceCount ) + " device(s)" ,
 			true,
 			wColour
@@ -221,18 +221,18 @@ bool CExecutorControlOpenCL::createDevices(void)
 	{
 		clDevice = new cl_device_id[ this->platformInfo[ iPlatformID ].uiDeviceCount ];
 
-		iErrorID = clGetDeviceIDs( 
-			this->clPlatforms[ iPlatformID ], 
-			CL_DEVICE_TYPE_ALL, 
-			this->platformInfo[ iPlatformID ].uiDeviceCount, 
-			clDevice, 
-			NULL 
+		iErrorID = clGetDeviceIDs(
+			this->clPlatforms[ iPlatformID ],
+			CL_DEVICE_TYPE_ALL,
+			this->platformInfo[ iPlatformID ].uiDeviceCount,
+			clDevice,
+			NULL
 		);
 
-		if ( iErrorID != CL_SUCCESS ) 
+		if ( iErrorID != CL_SUCCESS )
 		{
-			model::doError( 
-				"Error obtaining the devices for CL platform '" + std::string( this->platformInfo[ iPlatformID ].cName ) + "'", 
+			model::doError(
+				"Error obtaining the devices for CL platform '" + std::string( this->platformInfo[ iPlatformID ].cName ) + "'",
 				model::errorCodes::kLevelFatal
 			);
 			return false;
@@ -246,10 +246,10 @@ bool CExecutorControlOpenCL::createDevices(void)
 				uiDeviceCount
 			);
 
-			if ( pDevice->isReady() )		
+			if ( pDevice->isReady() )
 			{
 				// Complies with the device filters?
-				if ( 
+				if (
 					pDevice->clDeviceType == CL_DEVICE_TYPE_CPU			&& ( ( this->deviceFilter & model::filters::devices::devicesCPU ) == model::filters::devices::devicesCPU ) ||
 					pDevice->clDeviceType == CL_DEVICE_TYPE_GPU			&& ( ( this->deviceFilter & model::filters::devices::devicesGPU ) == model::filters::devices::devicesGPU ) ||
 					pDevice->clDeviceType == CL_DEVICE_TYPE_ACCELERATOR && ( ( this->deviceFilter & model::filters::devices::devicesAPU ) == model::filters::devices::devicesAPU )
@@ -288,29 +288,29 @@ char* CExecutorControlOpenCL::getPlatformInfo( unsigned int uiPlatformID, cl_pla
 	cl_int		iErrorID;
 	size_t		clSize;
 
-	iErrorID = clGetPlatformInfo( 
-		this->clPlatforms[ uiPlatformID ], 
-		clInfo, 
-		NULL, 
-		NULL, 
-		&clSize 
+	iErrorID = clGetPlatformInfo(
+		this->clPlatforms[ uiPlatformID ],
+		clInfo,
+		NULL,
+		NULL,
+		&clSize
 	);
 
 	char* cValue = new char[ clSize + 1 ];
 
-	iErrorID = clGetPlatformInfo( 
-		this->clPlatforms[ uiPlatformID ], 
-		clInfo, 
-		clSize, 
-		cValue, 
-		NULL 
+	iErrorID = clGetPlatformInfo(
+		this->clPlatforms[ uiPlatformID ],
+		clInfo,
+		clSize,
+		cValue,
+		NULL
 	);
 
 	return cValue;
 }
 
 /*
- *  Get the code for a specific type of benchmark, to be compiled 
+ *  Get the code for a specific type of benchmark, to be compiled
  *  to a kernel.
  */
 OCL_RAW_CODE CExecutorControlOpenCL::getOCLCode( std::string sFilename )
@@ -325,7 +325,7 @@ COCLDevice*	CExecutorControlOpenCL::getDevice()
 {
 	// Verify that a device has been selected, and do so
 	// if otherwise.
-	if ( this->uiSelectedDeviceID == NULL ) 
+	if ( this->uiSelectedDeviceID == NULL )
 		this->selectDevice();
 
 	return this->getDevice(
@@ -338,7 +338,7 @@ COCLDevice*	CExecutorControlOpenCL::getDevice()
  */
 COCLDevice*	CExecutorControlOpenCL::getDevice( unsigned int uiDeviceNo )
 {
-	if ( uiDeviceNo > getDeviceCount() ) 
+	if ( uiDeviceNo > getDeviceCount() )
 		return NULL;
 	if ( uiDeviceNo < 1 )
 		return NULL;
@@ -366,7 +366,7 @@ void	CExecutorControlOpenCL::selectDevice()
 
 	// TODO: Implement some system of selecting the best device
 	//		 Until then, just pick the first one.
-	if ( this->pDevices.size() < 1 ) 
+	if ( this->pDevices.size() < 1 )
 	{
 		model::doError(
 			"No suitable devices could be found for running this model.",

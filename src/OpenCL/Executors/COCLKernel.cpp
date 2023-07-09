@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -34,13 +34,13 @@
  */
 COCLKernel::COCLKernel(
 		COCLProgram*		program,
-		std::string			sKernelName
+		std::string		sKernelName
 	)
 {
 	this->program			= program;
-	this->sName				= sKernelName;
+	this->sName			= sKernelName;
 	this->bReady			= false;
-	this->bGroupSizeForced	= false;
+	this->bGroupSizeForced		= false;
 	this->clProgram			= program->clProgram;
 	this->clKernel			= NULL;
 	this->pDevice			= program->getDevice();
@@ -75,9 +75,11 @@ void COCLKernel::scheduleExecution()
 
 	cl_event		clEvent		= NULL;
 	cl_int			iErrorID	= CL_SUCCESS;
-
+#ifdef DEBUG_OPENCL
+	pManager->log->writeLine("OPENCL KERNEL START: #" + toString( this->uiDeviceID ) + " kernel: " + sName + "\n");
+#endif
 	pDevice->markBusy();
-	
+
 	iErrorID = clEnqueueNDRangeKernel(
 		this->clQueue,
 		clKernel,
@@ -94,7 +96,7 @@ void COCLKernel::scheduleExecution()
 	{
 		// The model cannot continue in this case
 		model::doError(
-			"Kernel queue failed for device #" + toString( this->uiDeviceID ) + ". Error " + toString( iErrorID ) + ".\n" 
+			"Kernel queue failed for device #" + toString( this->uiDeviceID ) + ". Error " + toString( iErrorID ) + ".\n"
 			+ "  " + sName,
 			model::errorCodes::kLevelModelStop
 		);
@@ -109,6 +111,9 @@ void COCLKernel::scheduleExecution()
 			fCallback,
 			&this->uiDeviceID
 		);
+		#ifdef DEBUG_OPENCL
+			pManager->log->writeLine("OPENCL KERNEL SET CALLBACK: #" + toString( this->uiDeviceID ) + " kernel: " + sName + "\n");
+		#endif
 
 		if ( iErrorID != CL_SUCCESS )
 		{
@@ -121,6 +126,10 @@ void COCLKernel::scheduleExecution()
 			return;
 		}
 	}
+	#ifdef DEBUG_OPENCL
+		pManager->log->writeLine("OPENCL KERNEL FINISH: #" + toString( this->uiDeviceID ) + " kernel: " + sName + "\n");
+	#endif
+
 }
 
 /*
@@ -183,7 +192,7 @@ bool COCLKernel::assignArguments(
 
 	return true;
 }
-	
+
 /*
  *  Assign a single argument
  */
@@ -318,14 +327,14 @@ void COCLKernel::prepareKernel()
 	}
 
 	this->arguments = new COCLBuffer*[ this->uiArgumentCount ];
-	
-	pManager->log->writeLine( "Kernel '" + sName + "' is defined:" ); 
-	pManager->log->writeLine( "  Private memory:   " + toString( this->ulMemPrivate ) + " bytes" ); 
-	pManager->log->writeLine( "  Local memory:     " + toString( this->ulMemLocal )   + " bytes" ); 
-	pManager->log->writeLine( "  Arguments:        " + toString( this->uiArgumentCount ) ); 
-	pManager->log->writeLine( "  Work-group size:  [ " + toString( szRequiredWGSize[0] )   + "," + 
+
+	pManager->log->writeLine( "Kernel '" + sName + "' is defined:" );
+	pManager->log->writeLine( "  Private memory:   " + toString( this->ulMemPrivate ) + " bytes" );
+	pManager->log->writeLine( "  Local memory:     " + toString( this->ulMemLocal )   + " bytes" );
+	pManager->log->writeLine( "  Arguments:        " + toString( this->uiArgumentCount ) );
+	pManager->log->writeLine( "  Work-group size:  [ " + toString( szRequiredWGSize[0] )   + "," +
 														 toString( szRequiredWGSize[1] )   + "," +
-														 toString( szRequiredWGSize[2] )   + " ]"); 
+														 toString( szRequiredWGSize[2] )   + " ]");
 
 	if ( this->uiArgumentCount == 0 )
 		this->bReady = true;
@@ -383,7 +392,7 @@ void COCLKernel::setGroupSize(
 
 	this->szGroupSize[0]	= static_cast<size_t>( X );
 	this->szGroupSize[1]	= static_cast<size_t>( Y );
-	this->szGroupSize[2]	= static_cast<size_t>( Z );	
+	this->szGroupSize[2]	= static_cast<size_t>( Z );
 
 	pManager->log->writeLine(
 		"Work-group size for '" + this->sName + "' set to [" +

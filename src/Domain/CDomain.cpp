@@ -493,6 +493,8 @@ unsigned char	CDomain::getDataValueCode( char* cSourceValue )
 		return model::rasterDatasets::dataValues::kVelocityX;
 	if ( strstr( cSourceValue, "velocityy" ) != NULL )		
 		return model::rasterDatasets::dataValues::kVelocityY;
+	if ( strstr( cSourceValue, "maxvelocity" ) != NULL )		
+		return model::rasterDatasets::dataValues::kMaxVelocity;
 	if ( strstr( cSourceValue, "froude" ) != NULL )		
 		return model::rasterDatasets::dataValues::kFroudeNumber;
 

@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -23,7 +23,7 @@
 /*
  *  Return a set of limited slopes to ensure the scheme is TVD.
  */
-cl_double4 slopeLimiter( 
+cl_double4 slopeLimiter(
 		cl_double4		pStateL,
 		cl_double4		pStateC,
 		cl_double4		pStateR,
@@ -65,13 +65,13 @@ cl_double calculateLimitedSlope(
 	cl_double	dRegionR = dRight - dCenter;
 
 	// Calculate r
-	cl_double dR = (fabs(dRegionL) <= 0.0 ? 0.0 : (dRegionR / dRegionL));
+	cl_double dR = (fabs(dRegionL) <= 0.0 ? 0.0 : (dRegionR / dRegionL)); // prevents division by zero
 	cl_double dPhi = fmax(fmax(0.0, fmin(MINBEE_BETA * dR, 1.0)), fmin(dR, MINBEE_BETA)) * dRegionL;
 
 	return dPhi;
-	
+
 	/*
-	cl_double	dr		 = ( ( dRegionL == 0.0 ) ? 0.0 : ( dRegionR / dRegionL ) );
+	cl_double	dr = ( ( dRegionL == 0.0 ) ? 0.0 : ( dRegionR / dRegionL ) );
 
 	// Calculate the limited slope coefficient (Greek symbol Xi)
 	// No min/max implementation in OpenCL...
@@ -82,7 +82,10 @@ cl_double calculateLimitedSlope(
 
 	// Maximum taken forward
 	dXi[0] = ( ( dXi[1] > dXi[2] ) ? dXi[1] : dXi[2] );
-	dXi[0] = ( ( dXi[0] > dXi[3] ) ? dXi[0] : dXi[0] );
+	// TODO: this doesn't make sense, is this a bug?
+	// dXi[0] = ( ( dXi[0] > dXi[3] ) ? dXi[0] : dXi[0] );
+	dXi[0] = ( ( dXi[0] > dXi[3] ) ? dXi[0] : dXi[3] );
+
 
 	return dXi[0] * dRegionL;
 	*/

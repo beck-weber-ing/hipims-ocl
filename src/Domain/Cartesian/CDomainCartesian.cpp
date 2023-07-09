@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -72,7 +72,7 @@ bool CDomainCartesian::configureDomain( XMLElement* pXDomain )
 	XMLElement* pXScheme;
 	XMLElement* pXDataSource;
 
-	char	*cSourceType = NULL, 
+	char	*cSourceType = NULL,
 			*cSourceValue = NULL,
 			*cSourceFile = NULL;
 
@@ -108,7 +108,7 @@ bool CDomainCartesian::configureDomain( XMLElement* pXDomain )
 			pDataset.openFileRead( std::string( cSourceDir ) + std::string( cSourceFile ) );
 			pManager->log->writeLine( "Successfully opened domain dataset for structure data." );
 			pDataset.logDetails();
-			
+
 			pDataset.applyDimensionsToDomain( this );
 		}
 
@@ -162,8 +162,8 @@ bool CDomainCartesian::configureDomain( XMLElement* pXDomain )
  */
 bool	CDomainCartesian::loadInitialConditions( XMLElement* pXData )
 {
-	bool							bSourceVelX			= false, 
-									bSourceVelY			= false, 
+	bool							bSourceVelX			= false,
+									bSourceVelY			= false,
 									bSourceManning		= false;
 	sDataSourceInfo					pDataDEM;
 	sDataSourceInfo					pDataDepth;
@@ -269,7 +269,7 @@ bool	CDomainCartesian::loadInitialConditions( XMLElement* pXData )
 	}
 	for ( unsigned int i = 0; i < pDataOther.size(); ++i )
 	{
-		if ( !this->loadInitialConditionSource( pDataOther[i], cSourceDir ) ) 
+		if ( !this->loadInitialConditionSource( pDataOther[i], cSourceDir ) )
 		{
 			model::doError(
 				"Could not load initial conditions.",
@@ -288,7 +288,7 @@ bool	CDomainCartesian::loadInitialConditions( XMLElement* pXData )
 bool	CDomainCartesian::loadOutputDefinitions( XMLElement* pXData )
 {
 	XMLElement*		pDataTarget		= pXData->FirstChildElement("dataTarget");
-	char			*cOutputType    = NULL, 
+	char			*cOutputType    = NULL,
 					*cOutputValue   = NULL,
 					*cOutputFormat  = NULL,
 					*cOutputFile    = NULL;
@@ -300,9 +300,9 @@ bool	CDomainCartesian::loadOutputDefinitions( XMLElement* pXData )
 		Util::toNewString( &cOutputFormat, pDataTarget->Attribute( "format" ) );
 		Util::toNewString( &cOutputFile,   pDataTarget->Attribute( "target" ) );
 
-		if ( cOutputType   == NULL || 
-			 cOutputValue  == NULL || 
-			 cOutputFormat == NULL || 
+		if ( cOutputType   == NULL ||
+			 cOutputValue  == NULL ||
+			 cOutputFormat == NULL ||
 			 cOutputFile   == NULL )
 		{
 			model::doError(
@@ -345,12 +345,15 @@ bool	CDomainCartesian::loadInitialConditionSource( sDataSourceInfo pDataSource, 
 {
 	if ( strcmp( pDataSource.cSourceType, "raster" ) == 0 )
 	{
+			
+		pManager->log->writeLine( std::string("Trying to load initial condition from: ")+std::string(cDataDir)+std::string(pDataSource.cFileValue));
 		CRasterDataset	pDataset;
-		pDataset.openFileRead( 
-			std::string( cDataDir ) + std::string( pDataSource.cFileValue ) 
+		pDataset.openFileRead(
+			std::string( cDataDir ) + std::string( pDataSource.cFileValue )
 		);
+		pManager->log->writeLine( std::string("Opened initial condition from: ")+std::string(cDataDir)+std::string(pDataSource.cFileValue));
 		return pDataset.applyDataToDomain( pDataSource.ucValue, this );
-	} 
+	}
 	else if ( strcmp( pDataSource.cSourceType, "constant" ) == 0 )
 	{
 		if ( !CXMLDataset::isValidFloat( pDataSource.cFileValue ) )
@@ -370,9 +373,9 @@ bool	CDomainCartesian::loadInitialConditionSource( sDataSourceInfo pDataSource, 
 			for( unsigned long j = 0; j < this->getRows(); j++ )
 			{
 				unsigned long ulCellID = this->getCellID( i, j );
-				if (i <= 0 || 
+				if (i <= 0 ||
 					j <= 0 ||
-					i >= this->getCols() - 1 || 
+					i >= this->getCols() - 1 ||
 					j >= this->getRows() - 1)
 				{
 					double dEdgeValue = 0.0;
@@ -385,7 +388,7 @@ bool	CDomainCartesian::loadInitialConditionSource( sDataSourceInfo pDataSource, 
 						4	// TODO: Allow rounding to be configured for source constants
 					);
 				}
-				else 
+				else
 				{
 					this->handleInputData(
 						ulCellID,
@@ -396,8 +399,8 @@ bool	CDomainCartesian::loadInitialConditionSource( sDataSourceInfo pDataSource, 
 				}
 			}
 		}
-	} 
-	else 
+	}
+	else
 	{
 		model::doError(
 			"Unrecognised data source type.",
@@ -425,12 +428,12 @@ bool	CDomainCartesian::validateDomain( bool bQuiet )
 	}
 
 	// Got a size?
-	if ( ( isnan( this->dRealDimensions[ kAxisX ] ) || 
-		   isnan( this->dRealDimensions[ kAxisY ] ) ) &&
-		 ( isnan( this->dRealExtent[ kEdgeN ] ) || 
-		   isnan( this->dRealExtent[ kEdgeE ] ) || 
-		   isnan( this->dRealExtent[ kEdgeS ] ) || 
-		   isnan( this->dRealExtent[ kEdgeW ] ) ) )
+	if ( ( std::isnan( this->dRealDimensions[ kAxisX ] ) ||
+		   std::isnan( this->dRealDimensions[ kAxisY ] ) ) &&
+		 ( std::isnan( this->dRealExtent[ kEdgeN ] ) ||
+		   std::isnan( this->dRealExtent[ kEdgeE ] ) ||
+		   std::isnan( this->dRealExtent[ kEdgeS ] ) ||
+		   std::isnan( this->dRealExtent[ kEdgeW ] ) ) )
 	{
 		if ( !bQuiet ) model::doError(
 			"Domain extent not defined",
@@ -469,7 +472,7 @@ bool	CDomainCartesian::validateDomain( bool bQuiet )
  */
 void	CDomainCartesian::prepareDomain()
 {
-	if ( !this->validateDomain( true ) ) 
+	if ( !this->validateDomain( true ) )
 	{
 		model::doError(
 			"Cannot prepare the domain. Invalid specification.",
@@ -491,7 +494,7 @@ void	CDomainCartesian::logDetails()
 	unsigned short	wColour			= model::cli::colourInfoBlock;
 
 	pManager->log->writeLine( "REGULAR CARTESIAN GRID DOMAIN", true, wColour );
-	if ( this->ulProjectionCode > 0 ) 
+	if ( this->ulProjectionCode > 0 )
 	{
 		pManager->log->writeLine( "  Projection:        EPSG:" + toString( this->ulProjectionCode ), true, wColour );
 	} else {
@@ -500,9 +503,9 @@ void	CDomainCartesian::logDetails()
 	pManager->log->writeLine( "  Device number:     " + toString( this->pDevice->uiDeviceNo ), true, wColour );
 	pManager->log->writeLine( "  Cell count:        " + toString( this->ulCellCount ), true, wColour );
 	pManager->log->writeLine( "  Cell resolution:   " + toString( this->dCellResolution ) + this->cUnits, true, wColour );
-	pManager->log->writeLine( "  Cell dimensions:   [" + toString( this->ulCols ) + ", " + 
+	pManager->log->writeLine( "  Cell dimensions:   [" + toString( this->ulCols ) + ", " +
 														 toString( this->ulRows ) + "]", true, wColour );
-	pManager->log->writeLine( "  Real dimensions:   [" + toString( this->dRealDimensions[ kAxisX ] ) + this->cUnits + ", " + 
+	pManager->log->writeLine( "  Real dimensions:   [" + toString( this->dRealDimensions[ kAxisX ] ) + this->cUnits + ", " +
 														 toString( this->dRealDimensions[ kAxisY ] ) + this->cUnits + "]", true, wColour );
 
 	pManager->log->writeDivide();
@@ -518,7 +521,7 @@ void	CDomainCartesian::setRealDimensions( double dSizeX, double dSizeY )
 	this->updateCellStatistics();
 }
 
-/*	
+/*
  *  Fetch real domain dimensions (X, Y)
  */
 void	CDomainCartesian::getRealDimensions( double* dSizeX, double* dSizeY )
@@ -560,7 +563,7 @@ void	CDomainCartesian::setRealExtent( double dEdgeN, double dEdgeE, double dEdge
 /*
  *  Fetch real domain extent (Clockwise: N, E, S, W)
  */
-void	CDomainCartesian::getRealExtent( double* dEdgeN, double* dEdgeE, double* dEdgeS, double* dEdgeW ) 
+void	CDomainCartesian::getRealExtent( double* dEdgeN, double* dEdgeE, double* dEdgeS, double* dEdgeW )
 {
 	*dEdgeN = this->dRealExtent[kEdgeN];
 	*dEdgeE = this->dRealExtent[kEdgeE];
@@ -590,7 +593,7 @@ void	CDomainCartesian::getCellResolution( double* dResolution )
  */
 void	CDomainCartesian::setUnits( char* cUnits )
 {
-	if ( std::strlen( cUnits ) > 2 ) 
+	if ( std::strlen( cUnits ) > 2 )
 	{
 		model::doError(
 			"Domain units can only be two characters",
@@ -642,12 +645,12 @@ void	CDomainCartesian::updateCellStatistics()
 	}
 
 	// Got a size?
-	if ( ( isnan( this->dRealDimensions[ kAxisX ] ) || 
-		   isnan( this->dRealDimensions[ kAxisY ] ) ) &&
-		 ( isnan( this->dRealExtent[ kEdgeN ] ) || 
-		   isnan( this->dRealExtent[ kEdgeE ] ) || 
-		   isnan( this->dRealExtent[ kEdgeS ] ) || 
-		   isnan( this->dRealExtent[ kEdgeW ] ) ) )
+	if ( ( std::isnan( this->dRealDimensions[ kAxisX ] ) ||
+		   std::isnan( this->dRealDimensions[ kAxisY ] ) ) &&
+		 ( std::isnan( this->dRealExtent[ kEdgeN ] ) ||
+		   std::isnan( this->dRealExtent[ kEdgeE ] ) ||
+		   std::isnan( this->dRealExtent[ kEdgeS ] ) ||
+		   std::isnan( this->dRealExtent[ kEdgeW ] ) ) )
 	{
 		return;
 	}
@@ -710,17 +713,17 @@ void	CDomainCartesian::sendAllToRenderer()
 		 ( this->ucFloatSize == 8 && this->dBedElevations == NULL ) ||
 		 ( this->ucFloatSize == 4 && this->fBedElevations == NULL ) ||
 		 ( this->ucFloatSize == 8 && this->dCellStates == NULL ) ||
-		 ( this->ucFloatSize == 4 && this->fCellStates == NULL ) ) 
+		 ( this->ucFloatSize == 4 && this->fCellStates == NULL ) )
 		return;
 
 #ifdef _WINDLL
 	if ( model::fSendTopography != NULL )
 		model::fSendTopography(
-			this->ucFloatSize == 8 ? 
+			this->ucFloatSize == 8 ?
 				static_cast<void*>( this->dBedElevations ) :
 				static_cast<void*>( this->fBedElevations ),
-			this->ucFloatSize == 8 ? 
-				static_cast<void*>( this->dCellStates ) : 
+			this->ucFloatSize == 8 ?
+				static_cast<void*>( this->dCellStates ) :
 				static_cast<void*>( this->fCellStates ),
 			this->ucFloatSize,
 			this->ulCols,
@@ -781,7 +784,7 @@ void	CDomainCartesian::imposeBoundaryModification(unsigned char ucDirection, uns
 {
 	unsigned long ulMinX, ulMaxX, ulMinY, ulMaxY;
 
-	if (ucDirection == edge::kEdgeE) 
+	if (ucDirection == edge::kEdgeE)
 		{ ulMinY = 0; ulMaxY = this->ulRows - 1; ulMinX = this->ulCols - 1; ulMaxX = this->ulCols - 1; };
 	if (ucDirection == edge::kEdgeW)
 		{ ulMinY = 0; ulMaxY = this->ulRows - 1; ulMinX = 0; ulMaxX = 0; };
@@ -816,14 +819,15 @@ void	CDomainCartesian::writeOutputs()
 	pScheme->readDomainAll();
 	pDevice->blockUntilFinished();
 
-	pManager->log->writeLine("Current domain volume: " + toString(fabs((float)(this->getVolume()))) + " m³");
+	pManager->log->writeLine("Current domain volume: " + std::to_string(std::fabs(this->getVolume())) + " mÂ³");
+	pManager->log->writeLine( "Finished domain: [" + std::to_string(getID()) + "], step: [" + std::to_string(pScheme->getCurrentTime()) + "], writing results ...");
 
 	for( unsigned int i = 0; i < this->pOutputs.size(); ++i )
 	{
 		// Replaces %t with the time in the filename, if required
 		// TODO: Allow for decimal output filenames
-		std::string sFilename		= this->pOutputs[i].sTarget;
-		std::string sTime			= toString( floor( pScheme->getCurrentTime() * 100.0 ) / 100.0 );
+		std::string sFilename	= this->pOutputs[i].sTarget;
+		std::string sTime	= toString( floor( pScheme->getCurrentTime() * 100.0 ) / 100.0 );
 		unsigned int uiTimeLocation = sFilename.find( "%t" );
 		if ( uiTimeLocation != std::string::npos )
 			sFilename.replace( uiTimeLocation, 2, sTime );
@@ -835,6 +839,8 @@ void	CDomainCartesian::writeOutputs()
 			this->pOutputs[i].ucValue
 		);
 	}
+
+	pManager->log->writeLine( "Finished domain: [" + std::to_string(getID()) + "], step: [" + std::to_string(pScheme->getCurrentTime()) + "], finished writing results.");
 }
 
 /*
@@ -843,7 +849,7 @@ void	CDomainCartesian::writeOutputs()
 CDomainBase::DomainSummary CDomainCartesian::getSummary()
 {
 	CDomainBase::DomainSummary pSummary;
-	
+
 	pSummary.bAuthoritative = true;
 
 	pSummary.uiDomainID		= this->uiID;
@@ -864,4 +870,3 @@ CDomainBase::DomainSummary CDomainCartesian::getSummary()
 
 	return pSummary;
 }
-

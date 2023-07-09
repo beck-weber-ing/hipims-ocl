@@ -7,14 +7,14 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
  * ------------------------------------------
  *  IMPLICIT FRICTION
  * ------------------------------------------
- *  Reduce discharge values according to 
+ *  Reduce discharge values according to
  *  friction coefficients.
  * ------------------------------------------
  *
@@ -30,38 +30,45 @@ cl_double4 implicitFriction(
 	cl_double		dLclTimestep
 	)
 {
-	__private cl_double		dDepth, dQ;
+	__private cl_double		dDepth, dQ, dQi, sDepthR;
 
 	// Calculate depth and composite discharge
 	dQ = sqrt(pCellState.z * pCellState.z + pCellState.w * pCellState.w);
+	dQi = 1.0 / dQ;
 	dDepth = pCellState.x - dBedElevation;
 
 	// Low discharge or low depth means don't bother
 	if (dDepth < VERY_SMALL || dQ < VERY_SMALL) return pCellState;
 
+	sDepthR = 1.0 / (dDepth * dDepth);
+
 	// Coefficient of friction, etc. See Liang (2010)
 	__private cl_double		dCf = (GRAVITY * dManningCoefficient * dManningCoefficient) / (pow((cl_double)dDepth, (cl_double)(1.0 / 3.0)));
-	__private cl_double		dSfx = (-dCf / (dDepth * dDepth)) * pCellState.z * dQ;
-	__private cl_double		dSfy = (-dCf / (dDepth * dDepth)) * pCellState.w * dQ;
-	__private cl_double		dDx = 1.0 + dLclTimestep * (dCf / (dDepth * dDepth)) * (2 * (pCellState.z * pCellState.z) + (pCellState.w * pCellState.w)) / dQ;
-	__private cl_double		dDy = 1.0 + dLclTimestep * (dCf / (dDepth * dDepth)) * ((pCellState.z * pCellState.z) + 2 * (pCellState.w * pCellState.w)) / dQ;
+	__private cl_double		dSfx = (-dCf * sDepthR) * pCellState.z * dQ;
+	__private cl_double		dSfy = (-dCf * sDepthR) * pCellState.w * dQ;
+	__private cl_double		dDx = 1.0 + dLclTimestep * (dCf * sDepthR) * (2 * (pCellState.z * pCellState.z) + (pCellState.w * pCellState.w)) * dQi;
+	__private cl_double		dDy = 1.0 + dLclTimestep * (dCf * sDepthR) * ((pCellState.z * pCellState.z) + 2 * (pCellState.w * pCellState.w)) * dQi;
 	__private cl_double		dFx = dSfx / dDx;
 	__private cl_double		dFy = dSfy / dDy;
+
+	__private cl_double		dLclTimestepR = 1.0 / dLclTimestep;
 
 	// Friction can only stop flow, not reverse it
 	if (pCellState.z >= 0.0)
 	{
-		if (dFx < -pCellState.z / dLclTimestep) dFx = -pCellState.z / dLclTimestep;
-	}
-	else {
-		if (dFx > -pCellState.z / dLclTimestep) dFx = -pCellState.z / dLclTimestep;
+		//if (dFx < -pCellState.z * dLclTimestepR) dFx = -pCellState.z * dLclTimestepR;
+		dFx = fmax(dFx,-pCellState.z * dLclTimestepR);
+	} else {
+		//if (dFx > -pCellState.z * dLclTimestepR) dFx = -pCellState.z * dLclTimestepR;
+		dFx = fmin(dFx,-pCellState.z * dLclTimestepR);
 	}
 	if (pCellState.w >= 0.0)
 	{
-		if (dFy < -pCellState.w / dLclTimestep) dFy = -pCellState.w / dLclTimestep;
-	}
-	else {
-		if (dFy > -pCellState.w / dLclTimestep) dFy = -pCellState.w / dLclTimestep;
+		//if (dFy < -pCellState.w * dLclTimestepR) dFy = -pCellState.w * dLclTimestepR;
+		dFy = fmax(dFy,-pCellState.w * dLclTimestepR);
+	} else {
+		//if (dFy > -pCellState.w * dLclTimestepR) dFy = -pCellState.w * dLclTimestepR;
+		dFy = fmin(dFy,-pCellState.w * dLclTimestepR);
 	}
 
 	// Update and commit data
@@ -75,25 +82,25 @@ cl_double4 implicitFriction(
  *  Adjust the discharge with regard to friction
  */
 __kernel  REQD_WG_SIZE_FULL_TS
-void per_Friction( 
-		__constant cl_double *  	dTimestep,
+void per_Friction(
+		__constant cl_double *  dTimestep,
 		__global cl_double4 *  	pCellData,
 		__global cl_double *  	dBedData,
 		__global cl_double *  	dManningData,
 		__global cl_double *  	dTime			// TODO: Remove this, only required for temp rain
 	)
 {
-	__private cl_double		dLclTimestep	= *dTimestep;
+	__private cl_double		dLclTimestep		= *dTimestep;
 	__private cl_long		lIdxX			= get_global_id(0);
 	__private cl_long		lIdxY			= get_global_id(1);
 	__private cl_ulong		ulIdx;
 
-	__private cl_double4	pCellState;
+	__private cl_double4		pCellState;
 	__private cl_double		dBedElevation;
 	__private cl_double		dManningCoefficient;
 
 	// Don't bother if we've gone beyond the domain bounds
-	if ( lIdxX >= DOMAIN_COLS - 1 || lIdxY >= DOMAIN_ROWS - 1 || lIdxX == 0 || lIdxY == 0 ) 
+	if ( lIdxX >= DOMAIN_COLS - 1 || lIdxY >= DOMAIN_ROWS - 1 || lIdxX == 0 || lIdxY == 0 )
 		return;
 
 	// Also don't bother if we've gone beyond the total simulation time
@@ -101,11 +108,11 @@ void per_Friction(
 		return;
 
 	ulIdx = getCellID(lIdxX, lIdxY);
-	pCellState			= pCellData[ ulIdx ];
+	pCellState		= pCellData[ ulIdx ];
 	dBedElevation		= dBedData[ ulIdx ];
 	dManningCoefficient	= dManningData[ ulIdx ];
 
-	if ( pCellState.x - dBedElevation < VERY_SMALL ) 
+	if ( pCellState.x - dBedElevation < VERY_SMALL )
 		return;
 
 	pCellState = implicitFriction(
@@ -114,11 +121,6 @@ void per_Friction(
 		dManningCoefficient,
 		dLclTimestep
 	);
-
-	// TODO: Remvoe this
-	// TEMPORARY ONLY
-	// Introduce some rainfall to the domain at 10mm/hr
-	//pCellState.x += 0.060/3600 * dLclTimestep;
 
 	pCellData[ ulIdx ]	= pCellState;
 }

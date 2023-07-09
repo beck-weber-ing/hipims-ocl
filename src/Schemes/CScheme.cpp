@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -38,18 +38,18 @@ CScheme::CScheme()
 	pManager->log->writeLine( "Scheme base-class instantiated." );
 
 	// Not ready by default
-	this->bReady				= false;
-	this->bRunning				= false;
+	this->bReady			= false;
+	this->bRunning			= false;
 	this->bThreadRunning		= false;
 	this->bThreadTerminated		= false;
 
 	this->bAutomaticQueue		= true;
 	this->uiQueueAdditionSize	= 1;
 	this->dCourantNumber		= 0.5;
-	this->dTimestep				= 0.001;
+	this->dTimestep			= 0.001;
 	this->bDynamicTimestep		= true;
 	this->bFrictionEffects		= true;
-	this->dTargetTime			= 0.0;
+	this->dTargetTime		= 0.0;
 	this->uiBatchSkipped		= 0;
 	this->uiBatchSuccessful		= 0;
 	this->dBatchTimesteps		= 0.0;
@@ -77,7 +77,7 @@ void	CScheme::setupFromConfig( XMLElement* pXScheme, bool bInheritanceChain )
 		Util::toLowercase( &cParameterValue, pParameter->Attribute( "value" ) );
 
 		if ( strcmp( cParameterName, "queuemode" ) == 0 )
-		{ 
+		{
 			unsigned char ucQueueMode = 255;
 			if ( strcmp( cParameterValue, "auto" ) == 0 )
 				ucQueueMode = model::queueMode::kAuto;
@@ -96,7 +96,7 @@ void	CScheme::setupFromConfig( XMLElement* pXScheme, bool bInheritanceChain )
 		else if ( strcmp( cParameterName, "queueinitialsize" )	== 0 ||
 				  strcmp( cParameterName, "queuesize" )			== 0 ||
 				  strcmp( cParameterName, "queuefixedsize" )	== 0 )
-		{ 
+		{
 			if ( !CXMLDataset::isValidUnsignedInt( cParameterValue ) )
 			{
 				model::doError(
@@ -299,5 +299,12 @@ double	CScheme::getTargetTime()
  */
 bool	CScheme::isRunning()
 {
+	std::shared_lock<std::shared_mutex> lock(mRunning);
 	return bRunning;
+}
+
+void	CScheme::setRunning(bool running = true)
+{
+	std::unique_lock<std::shared_mutex> lock(mRunning);
+	bRunning = running;
 }

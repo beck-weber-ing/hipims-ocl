@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -27,6 +27,8 @@
 #include "../OpenCL/Executors/COCLKernel.h"
 #include "../OpenCL/Executors/COCLBuffer.h"
 
+#include <atomic>
+#include <shared_mutex>
 namespace model {
 
 // Model scheme types
@@ -85,6 +87,7 @@ class CScheme
 		virtual void		setupFromConfig( XMLElement*, bool = false );							// Set up the scheme
 		bool				isReady();																// Is the scheme ready to run?
 		bool				isRunning();															// Is this scheme currently running a batch?
+		void				setRunning(bool);
 		virtual void		logDetails() = 0;														// Write some details about the scheme
 		virtual void		prepareAll() = 0;														// Prepare absolutely everything for a model run
 		virtual double		proposeSyncPoint( double ) = 0;											// Propose a synchronisation point
@@ -134,22 +137,23 @@ class CScheme
 		// ...
 
 		// Private variables
-		bool				bRunning;																// Is this simulation currently running?
-		bool				bThreadRunning;															// Is the worker thread running?
-		bool				bThreadTerminated;														// Has the worker thread been terminated?
+		std::shared_mutex		mRunning;
+		std::atomic<bool>		bRunning;																// Is this simulation currently running?
+		std::atomic<bool>		bThreadRunning;															// Is the worker thread running?
+		std::atomic<bool>		bThreadTerminated;														// Has the worker thread been terminated?
 		bool				bReady;																	// Is the scheme ready?
 		bool				bBatchComplete;															// Is the batch done?
 		bool				bBatchError;															// Have we run out of room?
 		bool				bFrictionEffects;														// Activate friction effects?
-		unsigned long long	ulCurrentCellsCalculated;												// Total number of cells calculated
+		unsigned long long		ulCurrentCellsCalculated;												// Total number of cells calculated
 		double				dCurrentTime;															// Current simulation time
 		double				dCurrentTimestep;														// Current simulation timestep
 		double				dTargetTime;															// Target time for synchronisation
 		bool				bAutomaticQueue;														// Automatic queue size detection?
 		double				dTimestep;																// Constant/initial timestep
-		unsigned int		uiQueueAdditionSize;													// Number of runs to queue at once
-		unsigned int		uiIterationsSinceSync;													// Number of iterations since we last synchronised
-		unsigned int		uiIterationsSinceProgressCheck;											// How many iterations since we downloaded progress data
+		unsigned int			uiQueueAdditionSize;													// Number of runs to queue at once
+		unsigned int			uiIterationsSinceSync;													// Number of iterations since we last synchronised
+		unsigned int			uiIterationsSinceProgressCheck;											// How many iterations since we downloaded progress data
 		double				dCourantNumber;															// Courant number for CFL condition
 		bool				bDynamicTimestep;														// Dynamic timestepping enabled?
 		double				dBatchStartedTime;														// Time at which the batch was started
@@ -158,7 +162,7 @@ class CScheme
 		cl_uint				uiBatchSuccessful;														// Number of successful batch iterations
 		cl_uint				uiBatchRate;															// Number of successful iterations per second
 		CDomain*			pDomain;																// Domain which this scheme is attached to
-		
+
 };
 
 #endif

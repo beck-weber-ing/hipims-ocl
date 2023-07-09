@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -29,6 +29,8 @@
 #include "Datasets/CXMLDataset.h"
 #include "Datasets/CRasterDataset.h"
 #include "MPI/CMPIManager.h"
+
+#include "OpenCL/cl_error.h"
 
 using std::min;
 using std::max;
@@ -76,7 +78,7 @@ void CModel::setupFromConfig( XMLElement* pXNode )
 		Util::toNewString( &cParameterFormat, pParameter->Attribute( "format" ) );
 
 		if ( strcmp( cParameterName, "duration" ) == 0 )
-		{ 
+		{
 			if ( !CXMLDataset::isValidFloat( cParameterValue ) )
 			{
 				model::doError(
@@ -88,11 +90,11 @@ void CModel::setupFromConfig( XMLElement* pXNode )
 			}
 		}
 		else if ( strcmp( cParameterName, "realstart" ) == 0 )
-		{ 
+		{
 			this->setRealStart( cParameterValue, cParameterFormat );
 		}
 		else if ( strcmp( cParameterName, "outputfrequency" ) == 0 )
-		{ 
+		{
 			if ( !CXMLDataset::isValidFloat( cParameterValue ) )
 			{
 				model::doError(
@@ -104,7 +106,7 @@ void CModel::setupFromConfig( XMLElement* pXNode )
 			}
 		}
 		else if ( strcmp( cParameterName, "floatingpointprecision" ) == 0 )
-		{ 
+		{
 			unsigned char ucFPPrecision = 255;
 			if ( strcmp( cParameterValue, "single" ) == 0 )
 				ucFPPrecision = model::floatPrecision::kSingle;
@@ -120,7 +122,7 @@ void CModel::setupFromConfig( XMLElement* pXNode )
 				this->setFloatPrecision( ucFPPrecision );
 			}
 		}
-		else 
+		else
 		{
 			model::doError(
 				"Unrecognised parameter: " + std::string( cParameterName ),
@@ -424,12 +426,12 @@ void	CModel::logProgress( CBenchmark::sPerformanceMetrics* sTotalMetrics )
 	pManager->log->writeLine( "             +----------+----------------+------------+----------+", false, wColour );	// 12
 	pManager->log->writeLine( "             |  Device  |  Avg.timestep  | Iterations | Bypassed |", false, wColour );	// 12
 	pManager->log->writeLine( "+------------+----------+----------------+------------+----------|", false, wColour );	// 13
-	
+
 	for( unsigned int i = 0; i < domains->getDomainCount(); i++ )
 	{
 		char cDomainLine[70] = "                                                                    X";
 		CDomainBase::mpiSignalDataProgress pProgress = domains->getDomain(i)->getDataProgress();
-		
+
 		// TODO: Give this it's proper name...
 		std::string sDeviceName = "REMOTE";
 
@@ -455,7 +457,7 @@ void	CModel::logProgress( CBenchmark::sPerformanceMetrics* sTotalMetrics )
 	pManager->log->writeDivide();																						// 15
 
 	this->pProgressCoords = Util::getCursorPosition();
-	if (this->dCurrentTime < this->dSimulationTime) 
+	if (this->dCurrentTime < this->dSimulationTime)
 	{
 		this->pProgressCoords.sY = max(0, this->pProgressCoords.sY - (16 + (cl_int)domains->getDomainCount()));
 		Util::setCursorPosition(this->pProgressCoords);
@@ -490,8 +492,10 @@ void CModel::visualiserUpdate()
  */
 void CL_CALLBACK CModel::visualiserCallback( cl_event clEvent, cl_int iStatus, void * vData )
 {
+	assert(iStatus == CL_COMPLETE);
+	pManager->log->writeLine( "Visualiser update..." );
 	pManager->visualiserUpdate();
-	clReleaseEvent( clEvent );
+	cl(clReleaseEvent( clEvent ));
 }
 
 /*
@@ -516,7 +520,7 @@ void	CModel::runModelPrepare()
 	dLastOutputTime		= 0.0;
 
 	// Global block until all domains are ready
-	// Don't use the global block function here as that's for async blocking during 
+	// Don't use the global block function here as that's for async blocking during
 	// the simulation
 #ifdef MPI_ON
 	pManager->getMPIManager()->blockOnComm();
@@ -566,6 +570,9 @@ void	CModel::runModelDomainAssess(
 		{
 			// Is this domain sync ready etc?
 			// TODO...
+			#ifdef DEBUG_MPI
+			pManager->log->writeLine("Domain #" + toString(i + 1) + " is local.");
+			#endif
 			bSyncReady[i] = true;
 			bIdle[i] = true;
 			continue;
@@ -596,9 +603,15 @@ void	CModel::runModelDomainAssess(
 		if (domains->getDomain(i)->getScheme()->isRunning() || domains->getDomain(i)->getDevice()->isBusy())
 		{
 			bIdle[i] = false;
+			#ifdef DEBUG_MPI
+			pManager->log->writeLine("Domain #" + toString(i + 1) + " is not yet idle.");
+			#endif
 		}
 		else {
 			bIdle[i] = true;
+			#ifdef DEBUG_MPI
+			pManager->log->writeLine("Domain #" + toString(i + 1) + " is idle!!!");
+			#endif
 		}
 	}
 
@@ -610,7 +623,7 @@ void	CModel::runModelDomainAssess(
 		if (!bSyncReady[i]) bSynchronised = false;
 		if (!bIdle[i])		bAllIdle = false;
 	}
-	
+
 	// Only allow sync if the domain links are at the right time and send data to other nodes
 	// if we need to
 	if ( bSynchronised && bAllIdle )
@@ -638,7 +651,7 @@ void	CModel::runModelDomainAssess(
 	}
 
 	// Force this loop to continue without scheduling work until we've sent/received
-	// all our MPI messages 
+	// all our MPI messages
 #ifdef MPI_ON
 	if ( pManager->getMPIManager()->isWaitingOnTransmission() ||
 		 pManager->getMPIManager()->isWaitingOnBlock() )
@@ -646,7 +659,7 @@ void	CModel::runModelDomainAssess(
 		bAllIdle = false;
 	}
 #endif
-	
+
 	// If we're synchronising the timesteps we need all idle
 	if ( bAllIdle && !bWaitOnLinks )
 	{
@@ -661,7 +674,7 @@ void	CModel::runModelDomainAssess(
 			if ( ( dMinTimestep == 0.0 || dMinTimestep > domains->getDomain(i)->getScheme()->getCurrentTimestep() ) &&
 				   domains->getDomain(i)->getScheme()->getCurrentTimestep() > 0.0 )
 				dMinTimestep = domains->getDomain(i)->getScheme()->getCurrentTimestep();
-				
+
 			if ( domains->getDomain(i)->getScheme()->getCurrentSuspendedState() == true )
 				bIsSuspended = true;
 		}
@@ -671,12 +684,12 @@ void	CModel::runModelDomainAssess(
 		if ( this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncTimestep )
 		{
 			// Force a reduction in cases where we've just had to write outputs as our timestep would have been zero
-			if ( 
-					pManager->getMPIManager()->reduceTimeData( 
-						dMinTimestep, 
-						&this->dGlobalTimestep, 
+			if (
+					pManager->getMPIManager()->reduceTimeData(
+						dMinTimestep,
+						&this->dGlobalTimestep,
 						this->dEarliestTime
-					) 
+					)
 				)
 			{
 #ifdef DEBUG_MPI
@@ -685,10 +698,13 @@ void	CModel::runModelDomainAssess(
 				bAllIdle = false;
 			}
 		}
-		
+
 		if ( this->getDomainSet()->getDomainCount() <= 1 )
 			dCurrentTime = dEarliestTime;
 #else
+#ifdef DEBUG_MPI
+		pManager->log->writeLine( "[DEBUG] dGlobalTimestep: " + std::to_string(dMinTimestep) );
+#endif
 		dGlobalTimestep = dMinTimestep;
 		dCurrentTime = dEarliestTime;
 #endif
@@ -711,10 +727,10 @@ void	CModel::runModelDomainExchange()
 		{
 			domains->getDomain(i)->getScheme()->importLinkZoneData();
 			// TODO: Above command does not actually cause import -- next line can be removed?
-			domains->getDomain(i)->getDevice()->flushAndSetMarker();		
+			// domains->getDomain(i)->getDevice()->flushAndSetMarker();
 		}
 	}
-	
+
 	this->runModelBlockNode();
 }
 
@@ -729,7 +745,7 @@ void	CModel::runModelUpdateTarget( double dTimeBase )
 #ifdef DEBUG_MPI
 	pManager->log->writeLine( "[DEBUG] Should now be updating the target time..." );
 #endif
-	
+
 	// Only bother with all this stuff if we actually need to synchronise,
 	// otherwise run free, for as long as possible (i.e. until outputs needed)
 	if (domains->getDomainCount() > 1 &&
@@ -779,7 +795,7 @@ void	CModel::runModelSync()
 		 !bSynchronised    ||
 		 !bAllIdle )
 		return;
-		
+
 	// No rollback required, thus we know the simulation time can now be increased
 	// to match the target we'd defined
 	this->dCurrentTime = dEarliestTime;
@@ -791,7 +807,7 @@ void	CModel::runModelSync()
 
 	// Write outputs if possible
 	this->runModelOutputs();
-		
+
 	// Calculate a new target time to aim for
 	this->runModelUpdateTarget( dCurrentTime );
 
@@ -817,9 +833,9 @@ void	CModel::runModelSync()
 
 			// Save the current state back to host memory, but only if necessary
 			// for either domain sync/rollbacks or to write outputs
-			if ( 
+			if (
 					( domains->getDomainCount() > 1 && this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncForecast ) ||
-					( fabs(this->dCurrentTime - dLastOutputTime - pManager->getOutputFrequency()) < 1E-5 && this->dCurrentTime > dLastOutputTime ) 
+					( fabs(this->dCurrentTime - dLastOutputTime - pManager->getOutputFrequency()) < 1E-5 && this->dCurrentTime > dLastOutputTime )
 			   )
 			{
 #ifdef DEBUG_MPI
@@ -832,12 +848,12 @@ void	CModel::runModelSync()
 
 	// Let devices finish
 	this->runModelBlockNode();
-	
+
 	// Exchange domain data
 	this->runModelDomainExchange();
 
 	// Wait for all nodes and devices
-	// TODO: This should become global across all nodes 
+	// TODO: This should become global across all nodes
 	this->runModelBlockNode();
 	//this->runModelBlockGlobal();
 }
@@ -845,8 +861,7 @@ void	CModel::runModelSync()
 /*
 *  Block execution across all domains which reside on this node only
 */
-void	CModel::runModelBlockNode()
-{
+void CModel::runModelBlockNode() {
 	for (unsigned int i = 0; i < domains->getDomainCount(); i++)
 	{
 		if (domains->isDomainLocal(i))
@@ -857,8 +872,7 @@ void	CModel::runModelBlockNode()
 /*
  *  Block execution across all domains until every single one is ready
  */
-void	CModel::runModelBlockGlobal()
-{
+void CModel::runModelBlockGlobal() {
 	this->runModelBlockNode();
 #ifdef MPI_ON
 	pManager->getMPIManager()->asyncBlockOnComm();
@@ -868,27 +882,33 @@ void	CModel::runModelBlockGlobal()
 /*
  *  Write output files if required.
  */
-void	CModel::runModelOutputs()
-{
-	if ( bRollbackRequired ||
-		 !bSynchronised ||
-		 !bAllIdle ||
-		 !( fabs(this->dCurrentTime - dLastOutputTime - pManager->getOutputFrequency()) < 1E-5 && this->dCurrentTime > dLastOutputTime) )
+void CModel::runModelOutputs() {
+	if ( bRollbackRequired || !bSynchronised || !bAllIdle ||
+		!( fabs(this->dCurrentTime - dLastOutputTime - pManager->getOutputFrequency()) < 1E-5 && this->dCurrentTime > dLastOutputTime) )
 		return;
+
+
+#ifdef DEBUG_MPI
+	pManager->log->writeLine( "[DEBUG] Global begin writing output ..." );
+#endif
 
 	this->writeOutputs();
 	dLastOutputTime = this->dCurrentTime;
-	
-	for (unsigned int i = 0; i < domains->getDomainCount(); ++i)
-	{
+
+	for (unsigned int i = 0; i < domains->getDomainCount(); ++i) {
 		if (domains->isDomainLocal(i))
 			domains->getDomain(i)->getScheme()->forceTimeAdvance();
 	}
-	
+
 #ifdef DEBUG_MPI
 	pManager->log->writeLine( "[DEBUG] Global block until all output files have been written..." );
 #endif
+
 	this->runModelBlockGlobal();
+
+#ifdef DEBUG_MPI
+	pManager->log->writeLine( "[DEBUG] Global block finished." );
+#endif
 }
 
 /*
@@ -911,7 +931,7 @@ void	CModel::runModelSchedule(CBenchmark::sPerformanceMetrics * sTotalMetrics, b
 #ifdef MPI_ON
 	if ( pManager->getMPIManager()->isWaitingOnBlock() )
 		return;
-	
+
 	// Synchronising timesteps so every iteration needs a collective operation
 	if ( this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncTimestep &&
 	     this->dEarliestTime != pManager->getMPIManager()->getLastCollectiveTime() )
@@ -920,9 +940,13 @@ void	CModel::runModelSchedule(CBenchmark::sPerformanceMetrics * sTotalMetrics, b
 
 	// If we're synchronising the timestep we only progress from here
 	// if ALL our domains are idle
-	if (this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncTimestep &&
-		!bAllIdle)
+	if (this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncTimestep && !bAllIdle) {
+
+		#ifdef DEBUG_MPI
+			pManager->log->writeLine( "[DEBUG] Global kSyncTimestep waits for every domains to be idle ..." );
+		#endif
 		return;
+	}
 
 	// Keep running each domain until we're ready for synchronisation
 	for (unsigned int i = 0; i < domains->getDomainCount(); ++i)
@@ -940,11 +964,14 @@ void	CModel::runModelSchedule(CBenchmark::sPerformanceMetrics * sTotalMetrics, b
 			     domains->getDomain(i)->getScheme()->getCurrentTime() != pManager->getMPIManager()->getLastCollectiveTime() )
 				continue;
 #endif
-				
+
 			// Set the timestep if we're synchronising them
-			if (this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncTimestep &&
-				dGlobalTimestep > 0.0)
+			if (this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncTimestep && dGlobalTimestep > 0.0) {
+#ifdef DEBUG_MPI
+				pManager->log->writeLine( "kSyncTimestep, syncing timestep - Global timestep: " + toString( dGlobalTimestep ) + " Current time: " + toString( domains->getDomain(i)->getScheme()->getCurrentTime() ) );
+#endif
 				domains->getDomain(i)->getScheme()->forceTimestep(dGlobalTimestep);
+			}
 			//pManager->log->writeLine( "Global timestep: " + toString( dGlobalTimestep ) + " Current time: " + toString( domains->getDomain(i)->getScheme()->getCurrentTime() ) );
 
 			// Run a batch
@@ -952,7 +979,7 @@ void	CModel::runModelSchedule(CBenchmark::sPerformanceMetrics * sTotalMetrics, b
 			domains->getDomain(i)->getScheme()->runSimulation(dTargetTime, sTotalMetrics->dSeconds);
 		}
 	}
-	
+
 	// Wait if we're syncing timesteps?
 	//if ( this->getDomainSet()->getSyncMethod() == model::syncMethod::kSyncTimestep )
 	//	this->runModelBlockGlobal();
@@ -968,7 +995,7 @@ void	CModel::runModelUI( CBenchmark::sPerformanceMetrics * sTotalMetrics )
 	{
 		this->logProgress(sTotalMetrics);
 		dLastProgressUpdate = sTotalMetrics->dSeconds;
-		
+
 #ifdef MPI_ON
 		// Send data back to root on the COMM if needed
 		pManager->getMPIManager()->sendDataSimulation();
@@ -990,12 +1017,12 @@ void	CModel::runModelRollback()
 		"Rollback invoked - code not yet ready",
 		model::errorCodes::kLevelModelStop
 	);
-		
+
 	// Now sync'd again and ready to continue
 	bRollbackRequired = false;
 	bSynchronised = false;
 
-	// Use the data from the last run to work out how long we can run 
+	// Use the data from the last run to work out how long we can run
 	// the batch for. Same function as normal but relative to the last sync time instead.
 	this->runModelUpdateTarget(dLastSyncTime);
 	pManager->log->writeLine("Simulation rollback at " + Util::secondsToTime(this->dCurrentTime) + "; revised sync point is " + Util::secondsToTime(dTargetTime) + ".");
@@ -1065,6 +1092,13 @@ void	CModel::runModelMain()
 	// Even if user has forced abort, still wait until all idle state is reached
 	while ( ( this->dCurrentTime < dSimulationTime - 1E-5 && !model::forceAbort ) || !bAllIdle )
 	{
+		#ifdef DEBUG_MPI
+			pManager->log->writeLine( "runModelMain: main iteration, dCurrentTime: " + std::to_string(this->dCurrentTime)
+			+ " dSimulationTime: " + std::to_string(dSimulationTime) // total time we want to simulate
+			+ " bAllIdle: " + std::to_string(bAllIdle)
+			);
+		#endif
+
 		// Assess the overall state of the simulation at present
 		this->runModelDomainAssess(
 			bSyncReady,
@@ -1075,14 +1109,14 @@ void	CModel::runModelMain()
 #ifdef MPI_ON
 		this->runModelMPI();
 #endif
-		
+
 		// Perform a rollback if required
 		this->runModelRollback();
 
 		// Perform a sync if possible
 		this->runModelSync();
-		
-		// Don't proceed beyond this point if we need to rollback and we're just waiting for 
+
+		// Don't proceed beyond this point if we need to rollback and we're just waiting for
 		// devices to finish first...
 		if (bRollbackRequired)
 			continue;
@@ -1138,4 +1172,3 @@ void	CModel::runModelMain()
 	delete[] bSyncReady;
 	delete[] bIdle;
 }
-

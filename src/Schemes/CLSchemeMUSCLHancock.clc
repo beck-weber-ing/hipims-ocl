@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -26,7 +26,7 @@
  *  Cache mode: No local caching required
  */
 __kernel REQD_WG_SIZE_HALF_TS
-void mch_1st_cacheNone ( 
+void mch_1st_cacheNone (
 			__constant	cl_double *  				dTimestep,						// Timestep
 			__global	cl_double const * restrict	dBedElevation,					// Bed elevation
 			__global	cl_double4 *  			pCellState,						// Current cell state data
@@ -47,14 +47,14 @@ void mch_1st_cacheNone (
 	__private cl_long					lIdxY			= get_global_id(1);
 	__private cl_ulong					ulIdx, ulIdxNeig;
 	__private cl_uchar					ucDirection;
-	
+
 	ulIdx = getCellID(lIdxX, lIdxY);
 
 	// Don't bother if we've gone beyond the domain bounds
-	if ( lIdxX >= DOMAIN_COLS - 1 || 
-		 lIdxY >= DOMAIN_ROWS - 1 || 
-		 lIdxX <= 0 || 
-		 lIdxY <= 0 ) 
+	if ( lIdxX >= DOMAIN_COLS - 1 ||
+		 lIdxY >= DOMAIN_ROWS - 1 ||
+		 lIdxX <= 0 ||
+		 lIdxY <= 0 )
 		return;
 
 	__private cl_double		dLclTimestep	= *dTimestep;
@@ -89,8 +89,8 @@ void mch_1st_cacheNone (
 
 	// Cell disabled? Can only skip this cell if all of the neighbours
 	// are also disabled.
-	if ( pCellData.y <= -9999.0 && 
-		 pNeigDataN.y <= -9999.0 && 
+	if ( pCellData.y <= -9999.0 &&
+		 pNeigDataN.y <= -9999.0 &&
 		 pNeigDataE.y <= -9999.0 &&
 		 pNeigDataS.y <= -9999.0 &&
 		 pNeigDataW.y <= -9999.0 )
@@ -141,7 +141,7 @@ void mch_1st_cacheNone (
 		pCellExtrapolatedS[ ulIdx ] = pExtrapolationS;
 		pCellExtrapolatedW[ ulIdx ] = pExtrapolationW;
 	#endif
-	#ifdef MEM_CONTIGUOUS_FACES 
+	#ifdef MEM_CONTIGUOUS_FACES
 		__private sFaceStructure	pExtrapolatedFaces;
 		pExtrapolatedFaces.pN = pExtrapolationN;
 		pExtrapolatedFaces.pE = pExtrapolationE;
@@ -156,7 +156,7 @@ void mch_1st_cacheNone (
  *  Cache mode: Local memory used for prediction only
  */
 __kernel REQD_WG_SIZE_HALF_TS
-void mch_1st_cachePrediction ( 
+void mch_1st_cachePrediction (
 			__constant	cl_double *  				dTimestep,						// Timestep
 			__global	cl_double const * restrict	dBedElevation,					// Bed elevation
 			__global	cl_double4 *  			pCellState,						// Current cell state data
@@ -185,9 +185,9 @@ void mch_1st_cachePrediction (
 	__private cl_ulong					ulIdx;
 	__private cl_double4				pCellData;
 	__private cl_double					dCellBedElev;
-	
+
 	if ( lIdxX <= DOMAIN_COLS - 1 &&
-		 lIdxY <= DOMAIN_ROWS - 1 && 
+		 lIdxY <= DOMAIN_ROWS - 1 &&
 		 lIdxX >= 0 &&
 		 lIdxY >= 0 )
 	{
@@ -204,14 +204,14 @@ void mch_1st_cachePrediction (
 	barrier( CLK_LOCAL_MEM_FENCE );
 
 	// Don't bother if we've gone beyond the domain bounds
-	if ( lIdxX >= DOMAIN_COLS - 1 || 
-		 lIdxY >= DOMAIN_ROWS - 1 || 
-		 lIdxX <= 0 || 
+	if ( lIdxX >= DOMAIN_COLS - 1 ||
+		 lIdxY >= DOMAIN_ROWS - 1 ||
+		 lIdxX <= 0 ||
 		 lIdxY <= 0 ||
 		 lLocalX >= lLocalSizeX - 1 ||
 		 lLocalY >= lLocalSizeY - 1 ||
 		 lLocalX <= 0 ||
-		 lLocalY <= 0 ) 
+		 lLocalY <= 0 )
 		return;
 
 	__private cl_double		dNeigBedElevN,dNeigBedElevE,dNeigBedElevS,dNeigBedElevW;
@@ -240,8 +240,8 @@ void mch_1st_cachePrediction (
 
 	// Cell disabled? Can only skip this cell if all of the neighbours
 	// are also disabled.
-	if ( pCellData.y == -9999.0 && 
-		 pNeigDataN.y == -9999.0 && 
+	if ( pCellData.y == -9999.0 &&
+		 pNeigDataN.y == -9999.0 &&
 		 pNeigDataE.y == -9999.0 &&
 		 pNeigDataS.y == -9999.0 &&
 		 pNeigDataW.y == -9999.0 )
@@ -285,7 +285,7 @@ void mch_1st_cachePrediction (
 		pCellExtrapolatedS[ ulIdx ] = pExtrapolationS;
 		pCellExtrapolatedW[ ulIdx ] = pExtrapolationW;
 	#endif
-	#ifdef MEM_CONTIGUOUS_FACES 
+	#ifdef MEM_CONTIGUOUS_FACES
 		__private sFaceStructure	pExtrapolatedFaces;
 		pExtrapolatedFaces.pN = pExtrapolationN;
 		pExtrapolatedFaces.pE = pExtrapolationE;
@@ -322,14 +322,14 @@ bool mch_1st (
 
 	// Dry cells (or nearly dry...) and boundary
 	// cells.
-	if ( pCellData.x - dCellBedElev < 1E-5 || 
+	if ( pCellData.x - dCellBedElev < 1E-5 ||
 		 pNeigDataN.y <= -9998.0 ||
 		 pNeigDataE.y <= -9998.0 ||
 		 pNeigDataS.y <= -9998.0 ||
 		 pNeigDataW.y <= -9998.0 )
 		bFirstOrder = true;
 
-	// Default is to resort to first-order 
+	// Default is to resort to first-order
 	pCellData.y = pCellData.x - dCellBedElev;						// 2nd element becomes depth...
 	*pExtrapolationN = pCellData;
 	*pExtrapolationE = pCellData;
@@ -386,7 +386,7 @@ bool mch_1st (
 /*
  *  Extrapolate face data using a slope
  */
-cl_double4 faceExtrapolate ( 
+cl_double4 faceExtrapolate (
 			cl_double 				dBedElevation,			// Bed elevation
 			cl_double4 				pCellState,				// Central cell data
 			cl_double4 				pSlope,					// Slope
@@ -405,7 +405,7 @@ cl_double4 faceExtrapolate (
 /*
  *  Calculate an extrapolated value for face data using a slope
  */
-cl_double calculateFaceExtrapolation ( 
+cl_double calculateFaceExtrapolation (
 			cl_double 				dValue,					// Central cell data
 			cl_double 				dSlope,					// Slope
 			cl_double				dCoefficient			// Coefficient
@@ -417,7 +417,7 @@ cl_double calculateFaceExtrapolation (
 /*
  *  Calculate fluxes using extrapolated face data (X-direction)
  */
-cl_double4 estimateFluxVectorX ( 
+cl_double4 estimateFluxVectorX (
 			cl_double4 				pFaceState				// Source extrapolated data
 		)
 {
@@ -435,8 +435,8 @@ cl_double4 estimateFluxVectorX (
 	// X-direction
 	pFlux.x = pFaceState.z;											// Qx
 	pFlux.y = dVelocityX * pFaceState.z								// U * Qx + 0.5 * g * ( Z^2 - 2( Zb * Z ) )
-				+ 0.5 * GRAVITY * ( ( pFaceState.x * pFaceState.x )		
-				- 2 * ( pFaceState.x - pFaceState.y ) * pFaceState.x );	
+				+ 0.5 * GRAVITY * ( ( pFaceState.x * pFaceState.x )
+				- 2 * ( pFaceState.x - pFaceState.y ) * pFaceState.x );
 	pFlux.z = dVelocityX * pFaceState.w;							// U * Qy
 
 	return pFlux;
@@ -445,7 +445,7 @@ cl_double4 estimateFluxVectorX (
 /*
  *  Calculate fluxes using extrapolated face data (Y-direction)
  */
-cl_double4 estimateFluxVectorY ( 
+cl_double4 estimateFluxVectorY (
 			cl_double4 				pFaceState				// Source extrapolated data
 		)
 {
@@ -464,7 +464,7 @@ cl_double4 estimateFluxVectorY (
 	pFlux.x = pFaceState.w;											// Qy
 	pFlux.y = dVelocityY * pFaceState.z;							// V * Qx
 	pFlux.z = dVelocityY * pFaceState.w								// V * Qy + 0.5 * g * Z^2 - 2( Zb * Z )
-				+ 0.5 * GRAVITY * ( ( pFaceState.x * pFaceState.x )		
+				+ 0.5 * GRAVITY * ( ( pFaceState.x * pFaceState.x )
 				- 2 * ( pFaceState.x - pFaceState.y ) * pFaceState.x );
 
 	return pFlux;
@@ -473,7 +473,7 @@ cl_double4 estimateFluxVectorY (
 /*
  *  Evolve the cell data for each face by a half-timestep
  */
-cl_double4 evolveCellState ( 
+cl_double4 evolveCellState (
 			cl_double			dTimestep,				// Timestep
 			cl_double4 			pCell,					// Current cell state data
 			cl_double4 			pCellExtrapolatedFaceN,	// Source cell state data (N)
@@ -486,33 +486,33 @@ cl_double4 evolveCellState (
 			cl_double4 			pFluxW					// Source flux data (W)
 		)
 {
-	cl_double4		dSourceTerms, dDeltaValues; 
+	cl_double4		dSourceTerms, dDeltaValues;
 
 	// Calculation of the source terms
 	dSourceTerms.x = 0.0;
-	dSourceTerms.y = -1 * GRAVITY * ( (pCellExtrapolatedFaceE.x + pCellExtrapolatedFaceW.x) / 2 ) * ( ( ( pCellExtrapolatedFaceE.x - pCellExtrapolatedFaceE.y ) - ( pCellExtrapolatedFaceW.x - pCellExtrapolatedFaceW.y ) ) / DOMAIN_DELTAX );
-	dSourceTerms.z = -1 * GRAVITY * ( (pCellExtrapolatedFaceN.x + pCellExtrapolatedFaceS.x) / 2 ) * ( ( ( pCellExtrapolatedFaceN.x - pCellExtrapolatedFaceN.y ) - ( pCellExtrapolatedFaceS.x - pCellExtrapolatedFaceS.y ) ) / DOMAIN_DELTAY );
+	dSourceTerms.y = -1 * GRAVITY * ( (pCellExtrapolatedFaceE.x + pCellExtrapolatedFaceW.x) * 0.5 ) * ( ( ( pCellExtrapolatedFaceE.x - pCellExtrapolatedFaceE.y ) - ( pCellExtrapolatedFaceW.x - pCellExtrapolatedFaceW.y ) ) * DOMAIN_DELTAX_R );
+	dSourceTerms.z = -1 * GRAVITY * ( (pCellExtrapolatedFaceN.x + pCellExtrapolatedFaceS.x) * 0.5 ) * ( ( ( pCellExtrapolatedFaceN.x - pCellExtrapolatedFaceN.y ) - ( pCellExtrapolatedFaceS.x - pCellExtrapolatedFaceS.y ) ) * DOMAIN_DELTAY_R );
 
 	// Calculation of the change values per timestep and spatial dimension
-	dDeltaValues.x	= ( pFluxE.x  - pFluxW.x  )/DOMAIN_DELTAX + 
-					  ( pFluxN.x  - pFluxS.x  )/DOMAIN_DELTAY - 
+	dDeltaValues.x	= ( pFluxE.x  - pFluxW.x  )* DOMAIN_DELTAX_R +
+					  ( pFluxN.x  - pFluxS.x  )* DOMAIN_DELTAY_R -
 					  dSourceTerms.x;
-	dDeltaValues.z	= ( pFluxE.y - pFluxW.y )/DOMAIN_DELTAX + 
-					  ( pFluxN.y - pFluxS.y )/DOMAIN_DELTAY - 
+	dDeltaValues.z	= ( pFluxE.y - pFluxW.y )* DOMAIN_DELTAX_R +
+					  ( pFluxN.y - pFluxS.y )* DOMAIN_DELTAY_R -
 					  dSourceTerms.y;
-	dDeltaValues.w	= ( pFluxE.z - pFluxW.z )/DOMAIN_DELTAX + 
-					  ( pFluxN.z - pFluxS.z )/DOMAIN_DELTAY - 
+	dDeltaValues.w	= ( pFluxE.z - pFluxW.z )* DOMAIN_DELTAX_R +
+					  ( pFluxN.z - pFluxS.z )* DOMAIN_DELTAY_R -
 					  dSourceTerms.z;
 
 	// Round delta values to zero if small
 	if ( ( dDeltaValues.x > 0.0 && dDeltaValues.x <  VERY_SMALL ) ||
-		 ( dDeltaValues.x < 0.0 && dDeltaValues.x > -VERY_SMALL ) ) 
+		 ( dDeltaValues.x < 0.0 && dDeltaValues.x > -VERY_SMALL ) )
 		 dDeltaValues.x = 0.0;
 	if ( ( dDeltaValues.z > 0.0 && dDeltaValues.z <  VERY_SMALL ) ||
-		 ( dDeltaValues.z < 0.0 && dDeltaValues.z > -VERY_SMALL ) ) 
+		 ( dDeltaValues.z < 0.0 && dDeltaValues.z > -VERY_SMALL ) )
 		 dDeltaValues.z = 0.0;
 	if ( ( dDeltaValues.w > 0.0 && dDeltaValues.w <  VERY_SMALL ) ||
-		 ( dDeltaValues.w < 0.0 && dDeltaValues.w > -VERY_SMALL ) ) 
+		 ( dDeltaValues.w < 0.0 && dDeltaValues.w > -VERY_SMALL ) )
 		 dDeltaValues.w = 0.0;
 
 	// Application of the change values
@@ -531,7 +531,7 @@ cl_double4 evolveCellState (
  *  Calculate everything for the second step of calculation
  */
 __kernel REQD_WG_SIZE_FULL_TS
-void mch_2nd_cacheNone ( 
+void mch_2nd_cacheNone (
 			__constant	cl_double *  				dTimestep,				// Timestep
 			__global	cl_double4 *  			pCellState,				// Current cell state data
 			__global	cl_double const * restrict	dBedElevation,			// Bed elevation
@@ -566,10 +566,10 @@ void mch_2nd_cacheNone (
 	__private cl_double8	pLeft,					pRight;							// Z, H, Qx, Qy, U, V, Zb
 
 	// Don't bother if we've gone beyond the domain bounds
-	if ( lIdxX >= DOMAIN_COLS - 2 || 
-		 lIdxY >= DOMAIN_ROWS - 2 || 
-		 lIdxX <= 1 || 
-		 lIdxY <= 1 ) 
+	if ( lIdxX >= DOMAIN_COLS - 2 ||
+		 lIdxY >= DOMAIN_ROWS - 2 ||
+		 lIdxX <= 1 ||
+		 lIdxY <= 1 )
 		return;
 
 	// Also don't bother if we've gone beyond the total simulation time
@@ -613,19 +613,19 @@ void mch_2nd_cacheNone (
 			{
 			case DOMAIN_DIR_N:
 				pExtrapolationIntnl[ucDirection]	= pCellExtrapolated[ ulIdx ].pN;
-				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pS;			
+				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pS;
 				break;
 			case DOMAIN_DIR_E:
 				pExtrapolationIntnl[ucDirection]	= pCellExtrapolated[ ulIdx ].pE;
-				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pW;			
+				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pW;
 				break;
 			case DOMAIN_DIR_S:
 				pExtrapolationIntnl[ucDirection]	= pCellExtrapolated[ ulIdx ].pS;
-				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pN;			
+				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pN;
 				break;
 			case DOMAIN_DIR_W:
 				pExtrapolationIntnl[ucDirection]	= pCellExtrapolated[ ulIdx ].pW;
-				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pE;			
+				pExtrapolationExtnl[ucDirection]	= pCellExtrapolated[ ulIdxNeig ].pE;
 				break;
 			}
 		#endif
@@ -668,7 +668,7 @@ void mch_2nd_cacheNone (
 	);
 	pNeigData[DOMAIN_DIR_E].x = pRight.S0;
 	pNeigData[DOMAIN_DIR_E].y = pRight.S6;
-	pFlux[DOMAIN_DIR_E] = riemannSolver( DOMAIN_DIR_E, pLeft, pRight, false ); 
+	pFlux[DOMAIN_DIR_E] = riemannSolver( DOMAIN_DIR_E, pLeft, pRight, false );
 
 	// -> South
 	ucStop += reconstructInterface(
@@ -705,29 +705,29 @@ void mch_2nd_cacheNone (
 	// Source term vector
 	// TODO: Somehow get these sorted too...
 	pSourceTerms.x = 0.0;
-	pSourceTerms.y = -1 * GRAVITY * ( ( pNeigData[DOMAIN_DIR_E].x + pNeigData[DOMAIN_DIR_W].x ) / 2 ) * ( ( pNeigData[DOMAIN_DIR_E].y - pNeigData[DOMAIN_DIR_W].y ) / DOMAIN_DELTAX );
-	pSourceTerms.z = -1 * GRAVITY * ( ( pNeigData[DOMAIN_DIR_N].x + pNeigData[DOMAIN_DIR_S].x ) / 2 ) * ( ( pNeigData[DOMAIN_DIR_N].y - pNeigData[DOMAIN_DIR_S].y ) / DOMAIN_DELTAY );
+	pSourceTerms.y = -1 * GRAVITY * ( ( pNeigData[DOMAIN_DIR_E].x + pNeigData[DOMAIN_DIR_W].x ) * 0.5 ) * ( ( pNeigData[DOMAIN_DIR_E].y - pNeigData[DOMAIN_DIR_W].y ) * DOMAIN_DELTAX_R );
+	pSourceTerms.z = -1 * GRAVITY * ( ( pNeigData[DOMAIN_DIR_N].x + pNeigData[DOMAIN_DIR_S].x ) * 0.5 ) * ( ( pNeigData[DOMAIN_DIR_N].y - pNeigData[DOMAIN_DIR_S].y ) * DOMAIN_DELTAY_R );
 
 	// Calculation of change values per timestep and spatial dimension
-	dDeltaValues.x	= ( pFlux[1].x  - pFlux[3].x  )/DOMAIN_DELTAX + 
-					  ( pFlux[0].x  - pFlux[2].x  )/DOMAIN_DELTAY - 
+	dDeltaValues.x	= ( pFlux[1].x  - pFlux[3].x  )* DOMAIN_DELTAX_R +
+					  ( pFlux[0].x  - pFlux[2].x  )* DOMAIN_DELTAY_R -
 					  pSourceTerms.x;
-	dDeltaValues.z	= ( pFlux[1].y - pFlux[3].y )/DOMAIN_DELTAX + 
-					  ( pFlux[0].y - pFlux[2].y )/DOMAIN_DELTAY - 
+	dDeltaValues.z	= ( pFlux[1].y - pFlux[3].y )* DOMAIN_DELTAX_R +
+					  ( pFlux[0].y - pFlux[2].y )* DOMAIN_DELTAY_R -
 					  pSourceTerms.y;
-	dDeltaValues.w	= ( pFlux[1].z - pFlux[3].z )/DOMAIN_DELTAX + 
-					  ( pFlux[0].z - pFlux[2].z )/DOMAIN_DELTAY - 
+	dDeltaValues.w	= ( pFlux[1].z - pFlux[3].z )* DOMAIN_DELTAX_R +
+					  ( pFlux[0].z - pFlux[2].z )* DOMAIN_DELTAY_R -
 					  pSourceTerms.z;
 
 	// Round delta values to zero if small
 	if ( ( dDeltaValues.x > 0.0 && dDeltaValues.x <  VERY_SMALL ) ||
-		 ( dDeltaValues.x < 0.0 && dDeltaValues.x > -VERY_SMALL ) ) 
+		 ( dDeltaValues.x < 0.0 && dDeltaValues.x > -VERY_SMALL ) )
 		 dDeltaValues.x = 0.0;
 	if ( ( dDeltaValues.z > 0.0 && dDeltaValues.z <  VERY_SMALL ) ||
-		 ( dDeltaValues.z < 0.0 && dDeltaValues.z > -VERY_SMALL ) ) 
+		 ( dDeltaValues.z < 0.0 && dDeltaValues.z > -VERY_SMALL ) )
 		 dDeltaValues.z = 0.0;
 	if ( ( dDeltaValues.w > 0.0 && dDeltaValues.w <  VERY_SMALL ) ||
-		 ( dDeltaValues.w < 0.0 && dDeltaValues.w > -VERY_SMALL ) ) 
+		 ( dDeltaValues.w < 0.0 && dDeltaValues.w > -VERY_SMALL ) )
 		 dDeltaValues.w = 0.0;
 
 	// Stopping conditions
@@ -806,7 +806,7 @@ void mch_2nd_cacheNone (
  *  Uses local caching for cell data
  */
 __kernel REQD_WG_SIZE_FULL_TS
-void mch_cacheMaximum ( 
+void mch_cacheMaximum (
 			__constant	cl_double *  				dTimestep,						// Timestep
 			__global	cl_double4 *  			pCellState,						// Current cell state data
 			__global	cl_double const * restrict	dBedElevation,					// Bed elevation
@@ -827,9 +827,9 @@ void mch_cacheMaximum (
 	__private cl_double4				pCellData;
 	__private cl_double					dCellBedElev;
 	__private cl_double					dManningCoef;
-	
+
 	if ( lIdxX <= DOMAIN_COLS - 1 &&
-		 lIdxY <= DOMAIN_ROWS - 1 && 
+		 lIdxY <= DOMAIN_ROWS - 1 &&
 		 lIdxX >= 0 &&
 		 lIdxY >= 0 )
 	{
@@ -847,14 +847,14 @@ void mch_cacheMaximum (
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Don't bother if we've gone beyond the domain bounds
-	if ( lIdxX >= DOMAIN_COLS - 2 || 
-		 lIdxY >= DOMAIN_ROWS - 2 || 
-		 lIdxX <= 1 || 
+	if ( lIdxX >= DOMAIN_COLS - 2 ||
+		 lIdxY >= DOMAIN_ROWS - 2 ||
+		 lIdxX <= 1 ||
 		 lIdxY <= 1 ||
 		 lLocalX >= lLocalSizeX - 2 ||
 		 lLocalY >= lLocalSizeY - 2 ||
 		 lLocalX <= 1 ||
-		 lLocalY <= 1 ) 
+		 lLocalY <= 1 )
 		return;
 
 	// Cell disabled?
@@ -983,7 +983,7 @@ void mch_cacheMaximum (
 	);
 	pNeigDataE.x = pLeft.S0;
 	pNeigDataE.y = pLeft.S6;
-	pFlux[DOMAIN_DIR_E] = riemannSolver( DOMAIN_DIR_E, pLeft, pRight, false ); 
+	pFlux[DOMAIN_DIR_E] = riemannSolver( DOMAIN_DIR_E, pLeft, pRight, false );
 
 	// -> South
 	ucStop += reconstructInterface(
@@ -1020,30 +1020,30 @@ void mch_cacheMaximum (
 	// Source term vector
 	// TODO: Somehow get these sorted too...
 	pSourceTerms.x = 0.0;
-	pSourceTerms.y = -1 * GRAVITY * ( ( pNeigDataE.x + pNeigDataW.x ) / 2 ) * ( ( pNeigDataE.y - pNeigDataW.y ) / DOMAIN_DELTAX );
-	pSourceTerms.z = -1 * GRAVITY * ( ( pNeigDataN.x + pNeigDataS.x ) / 2 ) * ( ( pNeigDataN.y - pNeigDataS.y ) / DOMAIN_DELTAY );
+	pSourceTerms.y = -1 * GRAVITY * ( ( pNeigDataE.x + pNeigDataW.x ) * 0.5 ) * ( ( pNeigDataE.y - pNeigDataW.y ) * DOMAIN_DELTAX_R );
+	pSourceTerms.z = -1 * GRAVITY * ( ( pNeigDataN.x + pNeigDataS.x ) * 0.5 ) * ( ( pNeigDataN.y - pNeigDataS.y ) * DOMAIN_DELTAY_R );
 
 	// Calculation of change values per timestep and spatial dimension
-	dDeltaValues.x	= ( pFlux[1].x  - pFlux[3].x  )/DOMAIN_DELTAX + 
-					  ( pFlux[0].x  - pFlux[2].x  )/DOMAIN_DELTAY - 
+	dDeltaValues.x	= ( pFlux[1].x  - pFlux[3].x  )* DOMAIN_DELTAX_R +
+					  ( pFlux[0].x  - pFlux[2].x  )* DOMAIN_DELTAY_R -
 					  pSourceTerms.x;
-	dDeltaValues.z	= ( pFlux[1].y - pFlux[3].y )/DOMAIN_DELTAX + 
-					  ( pFlux[0].y - pFlux[2].y )/DOMAIN_DELTAY - 
+	dDeltaValues.z	= ( pFlux[1].y - pFlux[3].y )* DOMAIN_DELTAX_R +
+					  ( pFlux[0].y - pFlux[2].y )* DOMAIN_DELTAY_R -
 					  pSourceTerms.y;
-	dDeltaValues.w	= ( pFlux[1].z - pFlux[3].z )/DOMAIN_DELTAX + 
-					  ( pFlux[0].z - pFlux[2].z )/DOMAIN_DELTAY - 
+	dDeltaValues.w	= ( pFlux[1].z - pFlux[3].z )* DOMAIN_DELTAX_R +
+					  ( pFlux[0].z - pFlux[2].z )* DOMAIN_DELTAY_R -
 					  pSourceTerms.z;
 
 	// Round delta values to zero if small
 	// TODO: Explore whether this can be rewritten as some form of clamp operation?
 	if ( ( dDeltaValues.x > 0.0 && dDeltaValues.x <  VERY_SMALL ) ||
-		 ( dDeltaValues.x < 0.0 && dDeltaValues.x > -VERY_SMALL ) ) 
+		 ( dDeltaValues.x < 0.0 && dDeltaValues.x > -VERY_SMALL ) )
 		 dDeltaValues.x = 0.0;
 	if ( ( dDeltaValues.z > 0.0 && dDeltaValues.z <  VERY_SMALL ) ||
-		 ( dDeltaValues.z < 0.0 && dDeltaValues.z > -VERY_SMALL ) ) 
+		 ( dDeltaValues.z < 0.0 && dDeltaValues.z > -VERY_SMALL ) )
 		 dDeltaValues.z = 0.0;
 	if ( ( dDeltaValues.w > 0.0 && dDeltaValues.w <  VERY_SMALL ) ||
-		 ( dDeltaValues.w < 0.0 && dDeltaValues.w > -VERY_SMALL ) ) 
+		 ( dDeltaValues.w < 0.0 && dDeltaValues.w > -VERY_SMALL ) )
 		 dDeltaValues.w = 0.0;
 
 	// Stopping conditions
@@ -1211,18 +1211,18 @@ cl_uchar reconstructInterface(
 
 	// Stopping conditions
 	/*
-	if (   pReconstructionLeft.S1 < VERY_SMALL && 
+	if (   pReconstructionLeft.S1 < VERY_SMALL &&
 		 ( ( ucDirection == DOMAIN_DIR_N && pStateLeft.w > 0.0 ) ||
 		   ( ucDirection == DOMAIN_DIR_E && pStateLeft.z > 0.0 ) ) )
 		ucStop++;
-	if (   pReconstructionRight.S1 < VERY_SMALL && 
+	if (   pReconstructionRight.S1 < VERY_SMALL &&
 		 ( ( ucDirection == DOMAIN_DIR_S && pStateRight.w < 0.0 ) ||
 		   ( ucDirection == DOMAIN_DIR_W && pStateRight.z < 0.0 ) ) )
 		ucStop++;
 	*/
 
 	// Output vector: Z, H, Qx, Qy, U, V, Zb
-	*pOutputLeft  = pReconstructionLeft;	
+	*pOutputLeft  = pReconstructionLeft;
 	*pOutputRight = pReconstructionRight;
 
 	// Stop flow?

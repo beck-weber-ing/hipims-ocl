@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -24,7 +24,7 @@
  *  Calculate everything without using LDS caching
  */
 __kernel REQD_WG_SIZE_FULL_TS
-void ine_cacheDisabled ( 
+void ine_cacheDisabled (
 			__constant	cl_double *  				dTimestep,						// Timestep
 			__global	cl_double const * restrict	dBedElevation,					// Bed elevation
 			__global	cl_double4 *  			pCellStateSrc,					// Current cell state data
@@ -38,23 +38,23 @@ void ine_cacheDisabled (
 	__private cl_long					lIdxY			= get_global_id(1);
 	__private cl_ulong					ulIdx, ulIdxNeig;
 	__private cl_uchar					ucDirection;
-	
+
 	ulIdx = getCellID(lIdxX, lIdxY);
 
 	// Don't bother if we've gone beyond the domain bounds
-	if ( lIdxX >= DOMAIN_COLS - 1 || 
-		 lIdxY >= DOMAIN_ROWS - 1 || 
-		 lIdxX <= 0 || 
-		 lIdxY <= 0 ) 
+	if ( lIdxX >= DOMAIN_COLS - 1 ||
+		 lIdxY >= DOMAIN_ROWS - 1 ||
+		 lIdxX <= 0 ||
+		 lIdxY <= 0 )
 		return;
 
 	__private cl_double		dLclTimestep	= *dTimestep;
 	__private cl_double		dManningCoef, dDeltaFSL;
 	__private cl_double		dCellBedElev,dNeigBedElevN,dNeigBedElevE,dNeigBedElevS,dNeigBedElevW;
-	__private cl_double4	pCellData,pNeigDataN,pNeigDataE,pNeigDataS,pNeigDataW;					// Z, Zmax, Qx, Qy
+	__private cl_double4		pCellData,pNeigDataN,pNeigDataE,pNeigDataS,pNeigDataW;					// Z, Zmax, Qx, Qy
 	__private cl_double		dDischarge[4];															// Qn, Qe, Qs, Qw
 	__private cl_uchar		ucDryCount		= 0;
-	
+
 
 	// Also don't bother if we've gone beyond the total simulation time
 	if ( dLclTimestep <= 0.0 )
@@ -62,7 +62,7 @@ void ine_cacheDisabled (
 
 	// Load cell data
 	dCellBedElev		= dBedElevation[ ulIdx ];
-	pCellData			= pCellStateSrc[ ulIdx ];
+	pCellData		= pCellStateSrc[ ulIdx ];
 	dManningCoef		= dManning[ ulIdx ];
 
 	// Cell disabled?
@@ -144,8 +144,8 @@ void ine_cacheDisabled (
 	pCellData.w		= dDischarge[DOMAIN_DIR_S];
 
 	// Calculation of change values per timestep and spatial dimension
-	dDeltaFSL		= ( dDischarge[DOMAIN_DIR_E] - dDischarge[DOMAIN_DIR_W] + 
-					    dDischarge[DOMAIN_DIR_N] - dDischarge[DOMAIN_DIR_S] )/DOMAIN_DELTAY;
+	dDeltaFSL		= ( dDischarge[DOMAIN_DIR_E] - dDischarge[DOMAIN_DIR_W] +
+					    dDischarge[DOMAIN_DIR_N] - dDischarge[DOMAIN_DIR_S] ) * DOMAIN_DELTAY_R;
 
 	// Update the flow state
 	pCellData.x		= pCellData.x + dLclTimestep * dDeltaFSL;
@@ -166,7 +166,7 @@ void ine_cacheDisabled (
  *  Calculate everything by also using LDS caching
  */
 __kernel REQD_WG_SIZE_FULL_TS
-void ine_cacheEnabled ( 
+void ine_cacheEnabled (
 			__constant	cl_double *  				dTimestep,						// Timestep
 			__global	cl_double const * restrict	dBedElevation,					// Bed elevation
 			__global	cl_double4 *  			pCellStateSrc,					// Current cell state data
@@ -184,14 +184,14 @@ void ine_cacheEnabled (
 	__private cl_long					lLocalY			= get_local_id(1);
 	__private cl_ulong					lLocalSizeX		= get_local_size(0);
 	__private cl_ulong					lLocalSizeY		= get_local_size(1);
-	__private cl_double4				pCellData;
+	__private cl_double4					pCellData;
 	__private cl_double					dManningCoef;
 	__private cl_double					dCellBedElev;
 	__private cl_ulong					ulIdx;
 
-	if ( lIdxX > DOMAIN_COLS - 1 || 
-		 lIdxY > DOMAIN_ROWS - 1 || 
-		 lIdxX < 0 || 
+	if ( lIdxX > DOMAIN_COLS - 1 ||
+		 lIdxY > DOMAIN_ROWS - 1 ||
+		 lIdxX < 0 ||
 		 lIdxY < 0 )
 	{
 		// Ideally we'd just exit the function here, but then we wont reach the barrier
@@ -203,7 +203,7 @@ void ine_cacheEnabled (
 
 	// The max FSL is substituted with the bed elevation, thereby reducing LDS consumption
 	dLclTimestep							= *dTimestep;
-	pCellData								= pCellStateSrc[ ulIdx ];
+	pCellData							= pCellStateSrc[ ulIdx ];
 	dCellBedElev							= dBedElevation[ ulIdx ];
 	dManningCoef							= dManning[ ulIdx ];
 	lpCellState[ lLocalX ][ lLocalY ]		= pCellData;
@@ -219,37 +219,37 @@ void ine_cacheEnabled (
 	}
 
 	// Don't bother if we've gone beyond the domain bounds
-	if ( lIdxX >= DOMAIN_COLS - 1 || 
-		 lIdxY >= DOMAIN_ROWS - 1 || 
-		 lIdxX <= 0 || 
+	if ( lIdxX >= DOMAIN_COLS - 1 ||
+		 lIdxY >= DOMAIN_ROWS - 1 ||
+		 lIdxX <= 0 ||
 		 lIdxY <= 0 ||
 		 lLocalX >= lLocalSizeX - 1 ||
 		 lLocalY >= lLocalSizeY - 1 ||
 		 lLocalX <= 0 ||
-		 lLocalY <= 0 ) 
+		 lLocalY <= 0 )
 		return;
 
 	__private cl_double		dNeigBedElevN,dNeigBedElevE,dNeigBedElevS,dNeigBedElevW;
-	__private cl_double4	pNeigDataN,pNeigDataE,pNeigDataS,pNeigDataW;							// Z, Zb, Qx, Qy
-	__private cl_double		dDeltaFSL;																
+	__private cl_double4		pNeigDataN,pNeigDataE,pNeigDataS,pNeigDataW;		// Z, Zb, Qx, Qy
+	__private cl_double		dDeltaFSL;
 	__private cl_double		dDischarge[4];															// Qn, Qe, Qs, Qw
 	__private cl_uchar		ucDryCount		= 0;
-	
+
 
 	// Also don't bother if we've gone beyond the total simulation time
 	if ( dLclTimestep <= 0.0 )
 		return;
 
-	pNeigDataW		= lpCellState[ lLocalX - 1 ][ lLocalY ];
-	pNeigDataS		= lpCellState[ lLocalX ][ lLocalY - 1 ];
-	pNeigDataE		= lpCellState[ lLocalX + 1 ][ lLocalY ];
-	pNeigDataN		= lpCellState[ lLocalX ][ lLocalY + 1 ];
+	pNeigDataW	= lpCellState[ lLocalX - 1 ][ lLocalY ];
+	pNeigDataS	= lpCellState[ lLocalX ][ lLocalY - 1 ];
+	pNeigDataE	= lpCellState[ lLocalX + 1 ][ lLocalY ];
+	pNeigDataN	= lpCellState[ lLocalX ][ lLocalY + 1 ];
 	dNeigBedElevW	= pNeigDataW.y;
 	dNeigBedElevS	= pNeigDataS.y;
 	dNeigBedElevE	= pNeigDataE.y;
 	dNeigBedElevN	= pNeigDataN.y;
 
-	// Cell disabled?
+	// Cell disabled? TODO: duplicate? see above
 	if ( pCellData.y <= -9999.0 || pCellData.x == -9999.0 )
 	{
 		pCellStateDst[ ulIdx ] = pCellData;
@@ -311,8 +311,8 @@ void ine_cacheEnabled (
 	pCellData.w		= dDischarge[DOMAIN_DIR_S];
 
 	// Calculation of change values per timestep and spatial dimension
-	dDeltaFSL		= ( dDischarge[DOMAIN_DIR_E] - dDischarge[DOMAIN_DIR_W] + 
-					    dDischarge[DOMAIN_DIR_N] - dDischarge[DOMAIN_DIR_S] )/DOMAIN_DELTAY;
+	dDeltaFSL		= ( dDischarge[DOMAIN_DIR_E] - dDischarge[DOMAIN_DIR_W] +
+					    dDischarge[DOMAIN_DIR_N] - dDischarge[DOMAIN_DIR_S] ) * DOMAIN_DELTAY_R;
 
 	// Update the flow state
 	pCellData.x		= pCellData.x + dLclTimestep * dDeltaFSL;
@@ -334,7 +334,7 @@ void ine_cacheEnabled (
  */
 cl_double calculateInertialFlux(
 		cl_double		dManningCoef,					// Manning coefficient
-		cl_double		dTimestep,						// Timestep
+		cl_double		dTimestep,					// Timestep
 		cl_double		dPreviousDischarge,				// Last current discharge
 		cl_double		dLevelUpstream,					// Upstream current level
 		cl_double		dBedUpstream,					// Upstream bed elevation
@@ -344,9 +344,9 @@ cl_double calculateInertialFlux(
 {
 	cl_double dDischarge = 0.0;
 	cl_double dDepth	 = fmax( dLevelDownstream, dLevelUpstream ) - max( dBedUpstream, dBedDownstream );
-	cl_double dSlope	 = ( dLevelDownstream - dLevelUpstream ) / DOMAIN_DELTAX;
+	cl_double dSlope	 = ( dLevelDownstream - dLevelUpstream ) * DOMAIN_DELTAX_R;
 
-	// Inertial 
+	// Inertial
 	dDischarge = ( dPreviousDischarge - ( GRAVITY * dDepth * dTimestep * dSlope ) ) /
 			     ( 1.0 + GRAVITY * dDepth * dTimestep * dManningCoef * dManningCoef * fabs( dPreviousDischarge ) /
 				   pow( dDepth, 10.0/3.0 ) );
@@ -363,10 +363,10 @@ cl_double calculateInertialFlux(
 	// This is used in CAESAR-LISFLOOD but I can't for the life of me work out the logic behind it...
 	/*
 	if ( dDischarge > 0.0 &&
-		 ( fabs( dDischarge ) * dTimestep / (cl_double)(DOMAIN_DELTAX) ) > ( dLevelUpstream - dBedUpstream ) / 4.0 )
+		 ( fabs( dDischarge ) * dTimestep * (cl_double)(DOMAIN_DELTAX_R) ) > ( dLevelUpstream - dBedUpstream ) / 4.0 )
 		dDischarge = ( ( dLevelUpstream - dBedUpstream ) * (cl_double)(DOMAIN_DELTAX) ) / 5.0 / dTimestep;
 	if ( dDischarge < 0.0 &&
-		 ( fabs( dDischarge ) * dTimestep / (cl_double)(DOMAIN_DELTAX) ) > ( dLevelDownstream - dBedDownstream ) / 4.0 )
+		 ( fabs( dDischarge ) * dTimestep * (cl_double)(DOMAIN_DELTAX_R) ) > ( dLevelDownstream - dBedDownstream ) / 4.0 )
 		dDischarge = 0.0 - ( ( dLevelDownstream - dBedDownstream ) * (cl_double)(DOMAIN_DELTAX) ) / 5.0 / dTimestep;
 	*/
 
