@@ -262,7 +262,7 @@ __kernel void bdy_SimplePipe (
 	__private sBndySPipeConfiguration	pConfig			= *pConfiguration;
 	__private cl_double					dLocalTime		= *pTime;
 	__private cl_double					dLocalTimestep  = *pTimestep;
-	
+
 	if (dLocalTimestep <= 0.0)
 		return;
 
@@ -305,7 +305,7 @@ __kernel void bdy_SimplePipe (
 	printf("     UW discharge Y:  %f m^2/s (%f m/s)\n", pEndData.w, dEndVelocityY);
 	#endif
 
-	if (pStartData.x - pConfig.invertStart < VERY_SMALL || pConfig.invertStart < dStartBed) {
+	if ((pStartData.x - pConfig.invertStart) < VERY_SMALL || pConfig.invertStart < dStartBed) {
 		#ifdef DEBUG_OUTPUT
 		printf("  Pipe is empty or close. No discharge.\n");
 		if (pConfig.invertStart < dStartBed) {
@@ -336,8 +336,8 @@ __kernel void bdy_SimplePipe (
 	__private cl_double		dVelocity;
 	__private cl_double		dOtherHeadTerms;
 	__private cl_double		dError = 9999999999.9;
-	__private cl_double		dInitialFrictionHeadLoss = (pStartData.x - pConfig.invertStart) > 0.0 
-		? (pConfig.invertStart + ((max(pConfig.invertStart, pStartData.x) - pConfig.invertStart) / 2.0)) - (pConfig.invertEnd + ((max(pConfig.invertEnd, pEndData.x) - pConfig.invertEnd) / 2.0)) 
+	__private cl_double		dInitialFrictionHeadLoss = (pStartData.x - pConfig.invertStart) > 0.0
+		? (pConfig.invertStart + ((max(pConfig.invertStart, pStartData.x) - pConfig.invertStart) / 2.0)) - (pConfig.invertEnd + ((max(pConfig.invertEnd, pEndData.x) - pConfig.invertEnd) / 2.0))
 		: 0.0;
 	__private cl_uint		uiIterations = 0;
 
