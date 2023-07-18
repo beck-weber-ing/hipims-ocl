@@ -30,8 +30,10 @@
 //#pragma		OPENCL EXTENSION cl_intel_printf : enable
 #endif
 
-#define		GRAVITY					9.81		// 9.80665
-#define		GRAVITY_R				0.102		// 1.0 / 9.80665
+#define		GRAVITY					9.80665 // 9.81		    // 9.80665
+#define		GRAVITY2				(GRAVITY*2)
+#define		GRAVITY_R				0.10197162129779282426	// 1.0 / 9.80665
+#define		GRAVITY2_R				0.05098581064889641213 // 1.0 / (2 * GRAVITY)
 #define		PI						3.14159265359
 
 // Type aliases to be consistent across different platforms
