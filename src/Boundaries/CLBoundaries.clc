@@ -328,6 +328,7 @@ __kernel void bdy_SimplePipe (
 			dPartialShapeFactor = (dProportionalDepthAngle - sin(dProportionalDepthAngle)) / dProportionalDepthAngle;
 		}
 	}
+	__private cl_double dWettedDiameter = pConfig.diameter * dPartialShapeFactor;
 
 	#ifdef DEBUG_OUTPUT
 	printf(" Partial pipe flow factors:\n");
@@ -340,13 +341,18 @@ __kernel void bdy_SimplePipe (
 	__private cl_double		dOtherHeadTerms;
 	__private cl_double		dError = 9999999999.9;
 	__private cl_double		dInitialFrictionHeadLoss = (pStartData.x - pConfig.invertStart) > 0.0
-		? (pConfig.invertStart + ((max(pConfig.invertStart, pStartData.x) - pConfig.invertStart) / 2.0)) - (pConfig.invertEnd + ((max(pConfig.invertEnd, pEndData.x) - pConfig.invertEnd) / 2.0))
+		? (pConfig.invertStart + ((max(pConfig.invertStart, pStartData.x) - pConfig.invertStart) * 0.5)) - (pConfig.invertEnd + ((max(pConfig.invertEnd, pEndData.x) - pConfig.invertEnd) * 0.5))
 		: 0.0;
 	__private cl_uint		uiIterations = 0;
+
+	// DEBUG
+	// dInitialFrictionHeadLoss = 1.0;
 
 	if (dInitialFrictionHeadLoss <= 0.0) {
 		return;
 	}
+
+	__private cl_double kd = ( (pConfig.roughness * 0.001) / (3.71 * dWettedDiameter) );
 
 	// Iterative process for Darcy-Weisbach
 	while (uiIterations < maxIterations && fabs(dError) > 0.0001) {
@@ -357,7 +363,7 @@ __kernel void bdy_SimplePipe (
 		// the friction losses, this could still fail in which case expect NaN terminations.
 		double dLastFrictionHeadLoss = dFrictionHeadLossEst;
 		if (uiIterations <= 1) {
-			dFrictionHeadLossEst		= dInitialFrictionHeadLoss;
+			dFrictionHeadLossEst = dInitialFrictionHeadLoss;
 		} else {
 			if (dFrictionHeadLossEst > dOtherHeadTerms) {
 				dFrictionHeadLossEst = dFrictionHeadLossEst - dOtherHeadTerms;
@@ -377,22 +383,29 @@ __kernel void bdy_SimplePipe (
 			dFrictionHeadLossEst = dLastFrictionHeadLoss * 2.0 / 3.0;
 		}
 
+		// NOTE: roughness maybe in mm but is used as m: /1000  | * 0.001
+		// NOTE: 1.13e-6 maybe kinematic viscosity of water at 20°:  1,002 · 10-6 m2/s, FBS Table says 1.31e-6 m²(s)
+		double darcy_weisbach_term = sqrt(2.0 * GRAVITY * dWettedDiameter * dFrictionHeadLossEst / pConfig.length);
 		dVelocity = -2.0
-			* sqrt(2.0 * GRAVITY * dPartialShapeFactor * pConfig.diameter * dFrictionHeadLossEst / pConfig.length)
 			* log10(
-				 ( (pConfig.roughness / 1000.0) / (3.7 * dPartialShapeFactor * pConfig.diameter) )
-			   + ( (2.51 * 1.13e-6) / ( (dPartialShapeFactor * pConfig.diameter) * sqrt(2.0 * GRAVITY * dPartialShapeFactor * pConfig.diameter * dFrictionHeadLossEst / pConfig.length) ))
-			  );
-		dOtherHeadTerms = pConfig.lossCoefficients * (dVelocity * dVelocity / (2.0 * GRAVITY));
+				 kd + ( (2.51 * 1.13e-6) / ( (dWettedDiameter) * darcy_weisbach_term ))
+			  )
+			* darcy_weisbach_term;
+
+		// local head loss / lokale druckhöhenverluste
+		// pConfig.lossCoefficients: also called zeta in literature
+		dOtherHeadTerms = pConfig.lossCoefficients * (dVelocity * dVelocity * GRAVITY2_R);
+
+		// dFrictionHeadLossEst: continuous head loss / kontinuierliche druckhöhenverluste
 		dError = dInitialFrictionHeadLoss - dFrictionHeadLossEst - dOtherHeadTerms;
 
-		#ifdef DEBUG_OUTPUT
-		printf(" Results of iteration:\n");
-		printf("   Friction loss: %f\n", dFrictionHeadLossEst);
-		printf("   Velocity:      %f\n", dVelocity);
-		printf("   Other head:    %f\n", dOtherHeadTerms);
-		printf("   Error:         %f\n", dError);
-		#endif
+		// #ifdef DEBUG_OUTPUT
+		// printf(" Results of iteration:\n");
+		// printf("   Friction loss: %f\n", dFrictionHeadLossEst);
+		// printf("   Velocity:      %f\n", dVelocity);
+		// printf("   Other head:    %f\n", dOtherHeadTerms);
+		// printf("   Error:         %f\n", dError);
+		// #endif
 	}
 
 	if (uiIterations >= maxIterations || fabs(dError) > 0.0001) {
@@ -400,17 +413,19 @@ __kernel void bdy_SimplePipe (
 		dPipeDischarge = sqrt(-1.0);
 	}
 
-	dPipeDischarge = dVelocity * PI * (dPartialShapeFactor * pConfig.diameter / 2.0) * (dPartialShapeFactor * pConfig.diameter / 2.0);
+	dPipeDischarge = dVelocity * PI * (dWettedDiameter * 0.5) * (dWettedDiameter * 0.5);
 
 	#ifdef DEBUG_OUTPUT
 	printf(" %u iterations, with error %f.\n", uiIterations, dError);
+	printf(" Initial headloss:    %f\n", dInitialFrictionHeadLoss);
+	printf(" Estimated headloss:  %f\n", dFrictionHeadLossEst);
 	printf(" Pipe flow:\n");
 	printf("   Velocity:          %f\n", dVelocity);
 	printf("   Discharge:         %f\n", dPipeDischarge);
 	#endif
 
 	// Lower the level upstream, increase the level downstream
-	if (pEndData.x < dEndBed + VERY_SMALL) {
+	if (pEndData.x < dEndBed + VERY_SMALL) { // TODO: move this after depth updates?
 		pEndData.z = 0.0;
 		pEndData.w = 0.0;
 	}
@@ -418,6 +433,7 @@ __kernel void bdy_SimplePipe (
 	pStartData.x = max(dStartBed, pStartData.x - (dPipeDischarge * dLocalTimestep) / DOMAIN_DELTAX / DOMAIN_DELTAY);
 	pEndData.x = max(dEndBed, pEndData.x) + (dPipeDischarge * dLocalTimestep) / DOMAIN_DELTAX / DOMAIN_DELTAY;
 
+	// VERY_SMALL water depth has no velocity
 	if (pStartData.x < dStartBed + VERY_SMALL) {
 		pStartData.z = 0.0;
 		pStartData.w = 0.0;
