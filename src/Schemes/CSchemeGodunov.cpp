@@ -940,7 +940,7 @@ bool CSchemeGodunov::prepareGeneralKernels()
 	oclKernelFriction->setGroupSize( this->ulNonCachedWorkgroupSizeX, this->ulNonCachedWorkgroupSizeY );
 	oclKernelFriction->setGlobalSize( this->ulNonCachedGlobalSizeX, this->ulNonCachedGlobalSizeY );
 
-	COCLBuffer* aryArgsFriction[] = { oclBufferTimestep, oclBufferCellStates, oclBufferCellBed, oclBufferCellManning, oclBufferTime };
+	COCLBuffer* aryArgsFriction[] = { oclBufferTimestep, oclBufferCellStates, oclBufferCellBed, oclBufferCellManning };
 	oclKernelFriction->assignArguments( aryArgsFriction );
 
 	return bReturnState;
@@ -967,8 +967,7 @@ bool CSchemeGodunov::prepare1OKernels()
 		oclKernelFullTimestep->setGlobalSize( this->ulNonCachedGlobalSizeX, this->ulNonCachedGlobalSizeY );
 		COCLBuffer* aryArgsFullTimestep[] = { oclBufferTimestep, oclBufferCellBed, oclBufferCellStates, oclBufferCellStatesAlt, oclBufferCellManning };
 		oclKernelFullTimestep->assignArguments( aryArgsFullTimestep );
-	}
-	if ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheEnabled )
+	} else if ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheEnabled )
 	{
 		oclKernelFullTimestep = oclModel->getKernel( "gts_cacheEnabled" );
 		oclKernelFullTimestep->setGroupSize( this->ulCachedWorkgroupSizeX, this->ulCachedWorkgroupSizeY );
@@ -1062,7 +1061,7 @@ void	CSchemeGodunov::prepareSimulation()
 	this->pDomain->getBoundaries()->applyDomainModifications();
 
 	// Initial volume in the domain
-	pManager->log->writeLine( "Initial domain volume: " + toString( fabs((float)(this->pDomain->getVolume()) ) ) + " m³" );
+	pManager->log->writeLine( "Initial domain volume: " + toString( fabs((float)(this->pDomain->getVolume()) ) ) + " mÂ²" );
 
 	// Copy the initial conditions
 	pManager->log->writeLine( "Copying domain data to device..." );

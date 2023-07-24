@@ -23,24 +23,22 @@
 /*
  *	Point-implicit calculation of the friction effects
  */
-cl_double4 implicitFriction(
+cl_double4  __attribute__((always_inline)) implicitFriction(
 	cl_double4		pCellState,
 	cl_double		dBedElevation,
+	cl_double		dDepth,
 	cl_double		dManningCoefficient,
 	cl_double		dLclTimestep
 	)
 {
-	__private cl_double		dDepth, dQ, dQi, sDepthR;
-
 	// Calculate depth and composite discharge
-	dQ = sqrt(pCellState.z * pCellState.z + pCellState.w * pCellState.w);
-	dQi = 1.0 / dQ;
-	dDepth = pCellState.x - dBedElevation;
+	__private cl_double		dQ = sqrt(pCellState.z * pCellState.z + pCellState.w * pCellState.w);
+	__private cl_double		dQi = 1.0 / dQ;
 
-	// Low discharge or low depth means don't bother
-	if (dDepth < VERY_SMALL || dQ < VERY_SMALL) return pCellState;
+	// Low discharge: don't bother
+	if (dQ < VERY_SMALL) return pCellState;
 
-	sDepthR = 1.0 / (dDepth * dDepth);
+	__private cl_double		sDepthR = 1.0 / (dDepth * dDepth);
 
 	// Coefficient of friction, etc. See Liang (2010)
 	__private cl_double		dCf = (GRAVITY * dManningCoefficient * dManningCoefficient) / (pow((cl_double)dDepth, (cl_double)(1.0 / 3.0)));
@@ -83,21 +81,15 @@ cl_double4 implicitFriction(
  */
 __kernel  REQD_WG_SIZE_FULL_TS
 void per_Friction(
-		__constant cl_double *  dTimestep,
+		__constant cl_double *		dTimestep,
 		__global cl_double4 *  	pCellData,
-		__global cl_double *  	dBedData,
-		__global cl_double *  	dManningData,
-		__global cl_double *  	dTime			// TODO: Remove this, only required for temp rain
+		__global cl_double const * restrict  	dBedData,
+		__global cl_double const * restrict  	dManningData
 	)
 {
-	__private cl_double		dLclTimestep		= *dTimestep;
+	__private cl_double		dLclTimestep	= *dTimestep;
 	__private cl_long		lIdxX			= get_global_id(0);
 	__private cl_long		lIdxY			= get_global_id(1);
-	__private cl_ulong		ulIdx;
-
-	__private cl_double4		pCellState;
-	__private cl_double		dBedElevation;
-	__private cl_double		dManningCoefficient;
 
 	// Don't bother if we've gone beyond the domain bounds
 	if ( lIdxX >= DOMAIN_COLS - 1 || lIdxY >= DOMAIN_ROWS - 1 || lIdxX == 0 || lIdxY == 0 )
@@ -107,17 +99,21 @@ void per_Friction(
 	if ( dLclTimestep <= 0.0 )
 		return;
 
-	ulIdx = getCellID(lIdxX, lIdxY);
-	pCellState		= pCellData[ ulIdx ];
-	dBedElevation		= dBedData[ ulIdx ];
-	dManningCoefficient	= dManningData[ ulIdx ];
+	__private cl_ulong ulIdx				= getCellID(lIdxX, lIdxY);
+	__private cl_double4 pCellState			= pCellData[ ulIdx ];
+	__private cl_double dBedElevation		= dBedData[ ulIdx ];
+	__private cl_double	dDepth				= pCellState.x - dBedElevation;
 
-	if ( pCellState.x - dBedElevation < VERY_SMALL )
+	// Low depth: don't bother
+	if ( dDepth < VERY_SMALL )
 		return;
+
+	__private cl_double dManningCoefficient	= dManningData[ ulIdx ];
 
 	pCellState = implicitFriction(
 		pCellState,
 		dBedElevation,
+		dDepth,
 		dManningCoefficient,
 		dLclTimestep
 	);
