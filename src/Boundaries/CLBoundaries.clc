@@ -279,17 +279,18 @@ __kernel void bdy_SimplePipe (
 	__private cl_double					dEndVelocityX   = pEndData.z / max(VERY_SMALL, pEndData.x - dEndBed);
 	__private cl_double					dEndVelocityY   = pEndData.w / max(VERY_SMALL, pEndData.x - dEndBed);
 	__private cl_double					dPipeDischarge	= 0.0;
-
+	__private cl_double					dInvertStart	= pConfig.invertStart <= -9999 ? dStartBed : pConfig.invertStart;
+	__private cl_double					dInvertEnd		= pConfig.invertEnd <= -9999 ? dEndBed : pConfig.invertEnd;
 	__constant cl_ulong					maxIterations = 5000;
 
 	#ifdef DEBUG_OUTPUT
 	printf("-- SIMPLE PIPE BOUNDARY --\n");
 	printf(" Configuration:\n");
 	printf("   Start cell:        %u, %u\n", pConfig.uiStartCellX, pConfig.uiStartCellY);
-	printf("   Start invert:      %f m\n", pConfig.invertStart);
+	printf("   Start invert:      %f m\n", dInvertStart);
 	printf("   Start bed:         %f m\n", dStartBed);
 	printf("   End cell:          %u, %u\n", pConfig.uiEndCellX, pConfig.uiEndCellY);
-	printf("   End invert:        %f m\n", pConfig.invertEnd);
+	printf("   End invert:        %f m\n", dInvertEnd);
 	printf("   End bed:           %f m\n", dEndBed);
 	printf("   Roughness:         %f mm\n", pConfig.roughness);
 	printf("   Length:            %f m\n", pConfig.length);
@@ -298,20 +299,20 @@ __kernel void bdy_SimplePipe (
 	printf(" Initial states:\n");
 	printf("   Start of pipe:\n");
 	printf("     Water level:     %f m\n", max(dStartBed, pStartData.x));
-	printf("     Pipe depth:      %f m\n", max(dStartBed, pStartData.x) - pConfig.invertStart);
+	printf("     Pipe depth:      %f m\n", max(dStartBed, pStartData.x) - dInvertStart);
 	printf("     UW discharge X:  %f m^2/s (%f m/s)\n", pStartData.z, dStartVelocityX);
 	printf("     UW discharge Y:  %f m^2/s (%f m/s)\n", pStartData.w, dStartVelocityY);
 	printf("   End of pipe:\n");
 	printf("     Water level:     %f m\n", max(dEndBed, pEndData.x));
-	printf("     Pipe depth:      %f m\n", max(dEndBed, pEndData.x) - pConfig.invertEnd);
+	printf("     Pipe depth:      %f m\n", max(dEndBed, pEndData.x) - dInvertEnd);
 	printf("     UW discharge X:  %f m^2/s (%f m/s)\n", pEndData.z, dEndVelocityX);
 	printf("     UW discharge Y:  %f m^2/s (%f m/s)\n", pEndData.w, dEndVelocityY);
 	#endif
 
-	if ((pStartData.x - pConfig.invertStart) < VERY_SMALL || pConfig.invertStart < dStartBed) {
+	if ((pStartData.x - dInvertStart) < VERY_SMALL || dInvertStart < dStartBed) {
 		#ifdef DEBUG_OUTPUT
 		printf("  Pipe is empty or close. No discharge.\n");
-		if (pConfig.invertStart < dStartBed) {
+		if (dInvertStart < dStartBed) {
 			printf("  [WARNING] Pipe invert is below bed level of cell.\n");
 		}
 		#endif
@@ -322,8 +323,8 @@ __kernel void bdy_SimplePipe (
 	__private cl_double		dProportionalDepthAngle		= PI * 2.0;
 	__private cl_double		dPartialShapeFactor			= 1.0;
 
-	if ((pStartData.x - pConfig.invertStart) < pConfig.diameter) {
-		dProportionalDepthAngle = 2 * acos(1.0 - (2 * (pStartData.x - pConfig.invertStart)) / pConfig.diameter);
+	if ((pStartData.x - dInvertStart) < pConfig.diameter) {
+		dProportionalDepthAngle = 2 * acos(1.0 - (2 * (pStartData.x - dInvertStart)) / pConfig.diameter);
 		if (dProportionalDepthAngle > 0.0) {
 			dPartialShapeFactor = (dProportionalDepthAngle - sin(dProportionalDepthAngle)) / dProportionalDepthAngle;
 		}
@@ -340,8 +341,8 @@ __kernel void bdy_SimplePipe (
 	__private cl_double		dVelocity;
 	__private cl_double		dOtherHeadTerms;
 	__private cl_double		dError = 9999999999.9;
-	__private cl_double		dInitialFrictionHeadLoss = (pStartData.x - pConfig.invertStart) > 0.0
-		? (pConfig.invertStart + ((max(pConfig.invertStart, pStartData.x) - pConfig.invertStart) * 0.5)) - (pConfig.invertEnd + ((max(pConfig.invertEnd, pEndData.x) - pConfig.invertEnd) * 0.5))
+	__private cl_double		dInitialFrictionHeadLoss = (pStartData.x - dInvertStart) > 0.0
+		? (dInvertStart + ((max(dInvertStart, pStartData.x) - dInvertStart) * 0.5)) - (dInvertEnd + ((max(dInvertEnd, pEndData.x) - dInvertEnd) * 0.5))
 		: 0.0;
 	__private cl_uint		uiIterations = 0;
 
