@@ -105,7 +105,6 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 	}
 
 	CDomainCartesian* pDomain = static_cast<CDomainCartesian*>(this->pDomain);
-
 	if (pDomain->isRemote()) {
 		model::doError(
 			"Attempted to setup pipe boundary on remote domain.",
