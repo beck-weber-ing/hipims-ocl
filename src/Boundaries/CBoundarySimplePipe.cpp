@@ -63,7 +63,7 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 		 *cBoundaryLossCoefficients,
 		 *cBoundaryDiameter,
 		 *cBoundaryInvertStart,
-		 *cBoundaryInvertEnd
+		 *cBoundaryInvertEnd,
 		 *cBoundaryFlipY;
 
 	Util::toLowercase(&cBoundaryType,			pElement->Attribute("type"));
