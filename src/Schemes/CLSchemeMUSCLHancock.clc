@@ -776,20 +776,25 @@ void mch_2nd_cacheNone (
 	}
 	#endif
 
+	__private cl_double dDepth = pCellData.x - dCellBedElev;
+
 	#ifdef FRICTION_ENABLED
 	#ifdef FRICTION_IN_FLUX_KERNEL
 	// Calculate the friction effects
-	pCellData = implicitFriction(
-		pCellData,
-		dCellBedElev,
-		dManningCoef,
-		dLclTimestep
-	);
+	if(dDepth >= VERY_SMALL) {
+		pCellData = implicitFriction(
+			pCellData,
+			dCellBedElev,
+			dDepth,
+			dManningCoef,
+			dLclTimestep
+		);
+	}
 	#endif
 	#endif
 
 	// Crazy low depths?
-	if (pCellData.x - dCellBedElev < VERY_SMALL)
+	if (dDepth < VERY_SMALL)
 		pCellData.x = dCellBedElev;
 
 	// New max FSL?
@@ -1089,20 +1094,25 @@ void mch_cacheMaximum (
 	}
 	#endif
 
+	__private cl_double dDepth = pCellData.x - dCellBedElev;
+
 	#ifdef FRICTION_ENABLED
 	#ifdef FRICTION_IN_FLUX_KERNEL
 	// Calculate the friction effects
-	pCellData = implicitFriction(
-		pCellData,
-		dCellBedElev,
-		dManningCoef,
-		dLclTimestep
-	);
+	if(dDepth >= VERY_SMALL) {
+		pCellData = implicitFriction(
+			pCellData,
+			dCellBedElev,
+			dDepth,
+			dManningCoef,
+			dLclTimestep
+		);
+	}
 	#endif
 	#endif
 
 	// Crazy low depths?
-	if ( pCellData.x - dCellBedElev < VERY_SMALL )
+	if (dDepth < VERY_SMALL)
 		pCellData.x = dCellBedElev;
 
 	// New max FSL?

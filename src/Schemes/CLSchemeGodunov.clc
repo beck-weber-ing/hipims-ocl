@@ -167,10 +167,10 @@ cl_uchar reconstructInterface(
  */
 __kernel REQD_WG_SIZE_FULL_TS
 void gts_cacheDisabled (
-			__constant	cl_double *  			dTimestep,					// Timestep
-			__global	cl_double const * restrict	dBedElevation,					// Bed elevation
-			__global	cl_double4 *  			pCellStateSrc,					// Current cell state data
-			__global	cl_double4 *  			pCellStateDst,					// Current cell state data
+			__constant	cl_double *  				dTimestep,					// Timestep
+			__global	cl_double const * restrict	dBedElevation,				// Bed elevation
+			__global	cl_double4 const * restrict	pCellStateSrc,				// Current cell state data
+			__global	cl_double4 * restrict		pCellStateDst,				// Current cell state data
 			__global	cl_double const * restrict	dManning					// Manning values
 		)
 {
@@ -376,25 +376,30 @@ void gts_cacheDisabled (
 	pCellData.xzw = pCellData.xzw - dDeltaValues.xzw * dLclTimestep;
 
 
+	__private cl_double dDepth = pCellData.x - dCellBedElev;
+
 	#ifdef FRICTION_ENABLED
 	#ifdef FRICTION_IN_FLUX_KERNEL
 	// Calculate the friction effects
-	pCellData = implicitFriction(
-		pCellData,
-		dCellBedElev,
-		dManningCoef,
-		dLclTimestep
-	);
+	if ( dDepth >= VERY_SMALL ) {
+		pCellData = implicitFriction(
+			pCellData,
+			dCellBedElev,
+			dDepth,
+			dManningCoef,
+			dLclTimestep
+		);
+	}
 	#endif
 	#endif
+
+	// Crazy low depths?
+	if ( dDepth < VERY_SMALL )
+		pCellData.x = dCellBedElev;
 
 	// New max FSL?
 	if ( pCellData.x > pCellData.y && pCellData.y > -9990.0 )
 		pCellData.y = pCellData.x;
-
-	// Crazy low depths?
-	if ( pCellData.x - dCellBedElev < VERY_SMALL )
-		pCellData.x = dCellBedElev;
 
 	// Commit to global memory
 	pCellStateDst[ ulIdx ] = pCellData;
@@ -407,8 +412,8 @@ __kernel REQD_WG_SIZE_FULL_TS
 void gts_cacheEnabled (
 			__constant	cl_double *  				dTimestep,						// Timestep
 			__global	cl_double const * restrict	dBedElevation,					// Bed elevation
-			__global	cl_double4 *  			pCellStateSrc,					// Current cell state data
-			__global	cl_double4 *  			pCellStateDst,					// Current cell state data
+			__global	cl_double4 const * restrict	pCellStateSrc,					// Current cell state data
+			__global	cl_double4 * restrict   	pCellStateDst,					// Current cell state data
 			__global	cl_double const * restrict	dManning						// Manning values
 		)
 {
@@ -621,25 +626,29 @@ void gts_cacheEnabled (
 	pCellData.z		= pCellData.z	- dLclTimestep * dDeltaValues.z;
 	pCellData.w		= pCellData.w	- dLclTimestep * dDeltaValues.w;
 
+	__private cl_double dDepth = pCellData.x - dCellBedElev;
 	#ifdef FRICTION_ENABLED
 	#ifdef FRICTION_IN_FLUX_KERNEL
 	// Calculate the friction effects
-	pCellData = implicitFriction(
-		pCellData,
-		dCellBedElev,
-		dManningCoef,
-		dLclTimestep
-	);
+	if(dDepth >= VERY_SMALL) {
+		pCellData = implicitFriction(
+			pCellData,
+			dCellBedElev,
+			dDepth,
+			dManningCoef,
+			dLclTimestep
+		);
+	}
 	#endif
 	#endif
+
+	// Crazy low depths?
+	if ( dDepth < VERY_SMALL )
+		pCellData.x = dCellBedElev;
 
 	// New max FSL?
 	if ( pCellData.x > pCellData.y && pCellData.y > -9990.0 )
 		pCellData.y = pCellData.x;
-
-	// Crazy low depths?
-	if ( pCellData.x - dCellBedElev < VERY_SMALL )
-		pCellData.x = dCellBedElev;
 
 	#ifdef DEBUG_OUTPUT
 	if ( lIdxX == DEBUG_CELLX && lIdxY == DEBUG_CELLY )

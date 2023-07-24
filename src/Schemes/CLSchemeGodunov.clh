@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -34,20 +34,20 @@ typedef struct sFaceStructure {
 
 // Function definitions
 __kernel  REQD_WG_SIZE_FULL_TS
-void gts_cacheDisabled ( 
+void gts_cacheDisabled (
 	__constant	cl_double *,
 	__global	cl_double const * restrict,
-	__global	cl_double4 *,
-	__global	cl_double4 *,
+	__global	cl_double4 const * restrict,
+	__global	cl_double4 * restrict,
 	__global    cl_double const * restrict
 );
 
 __kernel  REQD_WG_SIZE_FULL_TS
-void gts_cacheEnabled ( 
+void gts_cacheEnabled (
 	__constant	cl_double *,
 	__global	cl_double const * restrict,
-	__global	cl_double4 *,
-	__global	cl_double4 *,
+	__global	cl_double4 const * restrict,
+	__global	cl_double4 * restrict,
 	__global    cl_double const * restrict
 );
 
