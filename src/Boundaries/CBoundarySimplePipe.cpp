@@ -63,7 +63,8 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 		 *cBoundaryLossCoefficients,
 		 *cBoundaryDiameter,
 		 *cBoundaryInvertStart,
-		 *cBoundaryInvertEnd;
+		 *cBoundaryInvertEnd
+		 *cBoundaryFlipY;
 
 	Util::toLowercase(&cBoundaryType,			pElement->Attribute("type"));
 	Util::toNewString(&cBoundaryName,			pElement->Attribute("name"));
@@ -72,6 +73,7 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 	Util::toLowercase(&cBoundaryRoughness,		pElement->Attribute("roughness"));
 	Util::toLowercase(&cBoundaryLossCoefficients, pElement->Attribute("lossCoefficients"));
 	Util::toLowercase(&cBoundaryDiameter,		pElement->Attribute("diameter"));
+	Util::toLowercase(&cBoundaryFlipY,		pElement->Attribute("flipY"));
 	Util::toLowercase(&cBoundaryInvertStart,	pElement->Attribute("invertStart"));
 	Util::toLowercase(&cBoundaryInvertEnd,		pElement->Attribute("invertEnd"));
 	Util::toLowercase(&cBoundaryStartX,			pElement->Attribute("startX"));
@@ -82,16 +84,24 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 	this->sName				= std::string( cBoundaryName );
 	this->length			= boost::lexical_cast<double>(cBoundaryPipeLength);
 	this->roughness			= boost::lexical_cast<double>(cBoundaryRoughness);
-	this->lossCoefficients	= boost::lexical_cast<double>(cBoundaryLossCoefficients);
 	this->diameter			= boost::lexical_cast<double>(cBoundaryDiameter);
-	this->invertStart		= boost::lexical_cast<double>(cBoundaryInvertStart);
-	this->invertEnd			= boost::lexical_cast<double>(cBoundaryInvertEnd);
 
-	double offsetX = 0.0, offsetY = 0.0;
-	if (cBoundaryPipeOrientation != NULL) {
-		double orientation = boost::lexical_cast<double>(cBoundaryPipeOrientation);
-		offsetX = sin(orientation / 180 * CL_M_PI) * this->length;
-		offsetY = cos(orientation / 180 * CL_M_PI) * this->length;
+	if(cBoundaryLossCoefficients != NULL) {
+		this->lossCoefficients	= boost::lexical_cast<double>(cBoundaryLossCoefficients);
+	} else {
+		this->lossCoefficients = 0;
+	}
+
+	if(cBoundaryInvertStart != NULL) {
+		this->invertStart		= boost::lexical_cast<double>(cBoundaryInvertStart);
+	} else {
+		this->invertStart = -9999;
+	}
+
+	if(cBoundaryInvertEnd != NULL) {
+		this->invertEnd			= boost::lexical_cast<double>(cBoundaryInvertEnd);
+	} else {
+		this->invertEnd = -9999;
 	}
 
 	CDomainCartesian* pDomain = static_cast<CDomainCartesian*>(this->pDomain);
@@ -104,6 +114,14 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 		return false;
 	}
 
+	// TODO: DEBUG: this i a quick hack to allow pipes when using projection with negative vertical resolution such as EPSG:25832. otherwise hipims seems to assume strictly positive dResolution values.
+	double ry = 1.0;
+	if(cBoundaryFlipY != NULL) {
+		if(boost::lexical_cast<bool>(cBoundaryFlipY)) {
+			ry = -1.0;
+		}
+	}
+
 	double dCornerN, dCornerE, dCornerS, dCornerW, dResolution;
 	pDomain->getCellResolution(&dResolution);
 	pDomain->getRealExtent(&dCornerN, &dCornerE, &dCornerS, &dCornerW);
@@ -112,16 +130,28 @@ bool CBoundarySimplePipe::setupFromConfig(XMLElement* pElement, std::string sBou
 	double startY			= boost::lexical_cast<double>(cBoundaryStartY);
 
 	this->startCellX = floor((startX - dCornerW) / dResolution);
-	this->startCellY = floor((startY - dCornerS) / dResolution);
+	this->startCellY = floor((startY - dCornerS) / (dResolution * ry));
 
 	if (cBoundaryEndX != NULL && cBoundaryEndY != NULL) {
 		double endX = boost::lexical_cast<double>(cBoundaryEndX);
 		double endY = boost::lexical_cast<double>(cBoundaryEndY);
 		this->endCellX = floor((endX - dCornerW) / dResolution);
-		this->endCellY = floor((endY - dCornerS) / dResolution);
+		this->endCellY = floor((endY - dCornerS) / (dResolution * ry));
 	} else {
+		double offsetX = 0.0, offsetY = 0.0;
+		if (cBoundaryPipeOrientation != NULL) {
+			double orientation = boost::lexical_cast<double>(cBoundaryPipeOrientation);
+			offsetX = sin(orientation / 180 * CL_M_PI) * this->length;
+			offsetY = cos(orientation / 180 * CL_M_PI) * this->length;
+		} else {
+			model::doError(
+				"Pipe parameters incomplete: either specify endX and endY or orientation.",
+				model::errorCodes::kLevelModelStop
+			);
+		}
+
 		this->endCellX = this->startCellX + ceil(fabs(offsetX / dResolution)) * (offsetX > 0 ? 1.0 : -1.0);
-		this->endCellY = this->startCellY + ceil(fabs(offsetY / dResolution)) * (offsetY > 0 ? 1.0 : -1.0);
+		this->endCellY = this->startCellY + ceil(fabs(offsetY / (dResolution * ry))) * (offsetY > 0 ? 1.0 : -1.0);
 	}
 
 	return true;
