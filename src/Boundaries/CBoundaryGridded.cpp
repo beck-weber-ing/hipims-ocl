@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -100,7 +100,7 @@ bool CBoundaryGridded::setupFromConfig(XMLElement* pElement, std::string sBounda
 	}
 	else {
 		model::doError(
-			"Unrecognised value parameter specified for gridded timeseries data.",
+			"Unrecognised value parameter specified for gridded timeseries data. Currently supported are: rain-intensity, mass-flux.",
 			model::errorCodes::kLevelWarning
 		);
 	}
@@ -349,4 +349,3 @@ void* CBoundaryGridded::CBoundaryGriddedEntry::getBufferData(unsigned char ucFlo
 
 	return pReturn;
 }
-
