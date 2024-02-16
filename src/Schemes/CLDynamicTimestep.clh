@@ -21,7 +21,7 @@
  * ------------------------------------------
  *
  */
-#define TIMESTEP_EARLY_LIMIT			1.0
+#define TIMESTEP_EARLY_LIMIT			0.1
 #define TIMESTEP_EARLY_LIMIT_DURATION	60.0
 #define TIMESTEP_START_MINIMUM			1E-10
 #define TIMESTEP_START_MINIMUM_DURATION	1.0
