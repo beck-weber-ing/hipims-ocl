@@ -250,6 +250,67 @@ __kernel void bdy_Gridded (
 	pCellState[ulIdx] = pCellData;
 }
 
+__kernel void bdy_StreamingGridded (
+	__constant		sBdyGriddedConfiguration *	pConfiguration,
+	__global		cl_double const * restrict	pValues,
+	__global		cl_double *					pTime,
+	__global		cl_double *					pTimestep,
+	__global		cl_double *					pTimeHydrological,
+	__global		cl_double4 *				pCellState,
+	__global		cl_double *					pCellBed,
+	__global		cl_double *					pCellManning
+	)
+{
+	// Which global series are we processing, and which cell
+	// Global ID is X, Y cell, then Z for the series
+	__private cl_long		lIdxX = get_global_id(0);
+	__private cl_long		lIdxY = get_global_id(1);
+	__private cl_ulong		ulIdx;
+
+	// Don't bother if we've gone beyond the domain bounds
+	if (lIdxX >= DOMAIN_COLS - 1 ||
+		lIdxY >= DOMAIN_ROWS - 1 ||
+		lIdxX <= 0 ||
+		lIdxY <= 0 )
+		return;
+
+	ulIdx = getCellID(lIdxX, lIdxY);
+
+	// How far in to the simulation are we? And current cell data
+	__private sBdyGriddedConfiguration	pConfig			= *pConfiguration;
+	__private cl_double4				pCellData		= pCellState[ulIdx];
+	__private cl_double					dCellBedElev	= pCellBed[ulIdx];
+	__private cl_double					dLclTime		= *pTime;
+	__private cl_double					dLclTimestep	= *pTimeHydrological;
+
+	// Cell disabled?
+	if (pCellData.y <= -9999.0 || pCellData.x == -9999.0)
+		return;
+
+	// Hydrological processes have their own timesteps
+	if (dLclTimestep < TIMESTEP_HYDROLOGICAL)
+		return;
+
+	// Calculate the right cell and stuff to be grabbing data from here...
+	// __private cl_ulong ulTimestep = (cl_ulong)floor( dLclTime / pConfig.TimeseriesInterval );
+	// if ( ulTimestep >= pConfig.TimeseriesEntries ) ulTimestep = pConfig.TimeseriesEntries;
+
+	__private cl_double ulColumn  = floor( ( ( (cl_double)lIdxX * (cl_double)DOMAIN_DELTAX ) - pConfig.GridOffsetX ) / pConfig.GridResolution );
+	__private cl_double ulRow     = floor( ( ( (cl_double)lIdxY * (cl_double)DOMAIN_DELTAY ) - pConfig.GridOffsetY ) / pConfig.GridResolution );
+	__private cl_ulong ulBdyCell  = ( pConfig.GridCols * (cl_ulong)ulRow ) + (cl_ulong)ulColumn;
+	__private cl_double dRate	  = pValues[ ulBdyCell ];
+
+	// Apply the value...
+	if ( pConfig.Definition == BOUNDARY_GRIDDED_RAIN_INTENSITY )
+		pCellData.x += dRate / 3600000.0 * dLclTimestep;
+
+	else if ( pConfig.Definition == BOUNDARY_GRIDDED_MASS_FLUX )
+		pCellData.x += dRate / ( (cl_double)DOMAIN_DELTAX * (cl_double)DOMAIN_DELTAY ) * dLclTimestep;
+
+	// Return to global memory
+	pCellState[ulIdx] = pCellData;
+}
+
 __kernel void bdy_SimplePipe (
 	__constant		sBndySPipeConfiguration *		pConfiguration,
 	__global		cl_double *						pTime,
