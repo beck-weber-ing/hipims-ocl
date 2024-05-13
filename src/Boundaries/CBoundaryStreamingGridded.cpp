@@ -255,7 +255,9 @@ void CBoundaryStreamingGridded::streamBoundary(double dTime) {
 
 	// ...
 	// TODO: Should we handle all the memory buffer writing in here?...
-	unsigned int t = min(0u, this->uiTimeseriesLength);
+	unsigned int t = min(floor(dTime / dTimeseriesInterval), this->uiTimeseriesLength);
+	//__private cl_ulong ulTimestep = (cl_ulong)floor( dLclTime / pConfig.TimeseriesInterval );
+	//if ( ulTimestep >= pConfig.TimeseriesEntries ) ulTimestep = pConfig.TimeseriesEntries;
 
 	if (this->singlePrecision) {
 		void* pGridData = this->pTimeseries[t]->getBufferData(model::floatPrecision::kSingle, this->pTransform);
