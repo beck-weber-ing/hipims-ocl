@@ -19,7 +19,7 @@
  * ------------------------------------------
  *
  */
-#define DEBUG_OUTPUT 1
+//#define DEBUG_OUTPUT 1
 
 __kernel void bdy_Cell (
 	__constant		sBdyCellConfiguration *		pConfiguration,
@@ -309,6 +309,7 @@ __kernel void bdy_SimplePipe (
 	printf("     UW discharge Y:  %f m^2/s (%f m/s)\n", pEndData.w, dEndVelocityY);
 	#endif
 
+
 	if ((pStartData.x - dInvertStart) < VERY_SMALL || dInvertStart < dStartBed) {
 		#ifdef DEBUG_OUTPUT
 		printf("  Pipe is empty or close. No discharge.\n");
@@ -316,6 +317,21 @@ __kernel void bdy_SimplePipe (
 			printf("  [WARNING] Pipe invert is below bed level of cell.\n");
 		}
 		#endif
+		return;
+	}
+
+	if (dStartBed <= -9999) {
+		#ifdef DEBUG_OUTPUT
+		printf("  Pipe begins in NODATA.\n");
+		#endif
+		return;
+	}
+
+	if (dEndBed <= -9999) {
+		#ifdef DEBUG_OUTPUT
+		printf("  Pipe ends in NODATA.\n");
+		#endif
+//		dEndBed = dStartBed;
 		return;
 	}
 
@@ -350,6 +366,9 @@ __kernel void bdy_SimplePipe (
 	// dInitialFrictionHeadLoss = 1.0;
 
 	if (dInitialFrictionHeadLoss <= 0.0) {
+		#ifdef DEBUG_OUTPUT
+		printf("dInitialFrictionHeadLoss <= 0:          %f\n", dInitialFrictionHeadLoss);
+		#endif
 		return;
 	}
 
@@ -380,6 +399,7 @@ __kernel void bdy_SimplePipe (
 			}
 		}
 
+		// If overshooting, reduce step and try again.
 		if (dFrictionHeadLossEst < 0.0) {
 			dFrictionHeadLossEst = dLastFrictionHeadLoss * 2.0 / 3.0;
 		}
@@ -412,6 +432,7 @@ __kernel void bdy_SimplePipe (
 	if (uiIterations >= maxIterations || fabs(dError) > 0.0001) {
 		// Force NaN to terminate simulation
 		dPipeDischarge = sqrt(-1.0);
+	printf(" %u iterations, with error %f.\n", uiIterations, dError);
 	}
 
 	dPipeDischarge = dVelocity * PI * (dWettedDiameter * 0.5) * (dWettedDiameter * 0.5);
@@ -450,7 +471,8 @@ __kernel void bdy_SimplePipe (
 	printf("     Time:            %f s\n", dLocalTime);
 	printf("     Timestep:        %f s\n", dLocalTimestep);
 	printf("     Volume:          %f m3\n", dPipeDischarge * dLocalTimestep);
-	printf("     Level change:    %f m\n", (dPipeDischarge * dLocalTimestep) / DOMAIN_DELTAX / DOMAIN_DELTAY);
+	printf("     Flux:            %f m3/s\n",dPipeDischarge);
+	printf("     Level change:    %f m\n", (dPipeDischarge * dLocalTimestep) / (DOMAIN_DELTAX * DOMAIN_DELTAY));
 	printf("   Start of pipe:\n");
 	printf("     Water level:     %f m\n", pStartData.x);
 	printf("     Depth:           %f m\n", pStartData.x - dStartBed);
