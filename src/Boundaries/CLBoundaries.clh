@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -26,6 +26,7 @@
 // always necessary
 // TODO: Make configurable...
 #define TIMESTEP_HYDROLOGICAL			0.25
+//#define TIMESTEP_HYDROLOGICAL			1
 
 // Boundary types
 #define BOUNDARY_ATMOSPHERIC			0
@@ -95,7 +96,7 @@ typedef struct sBndySPipeConfiguration
 		cl_double		invertEnd;
 } sBndySPipeConfiguration;
 
-__kernel void bdy_Cell ( 
+__kernel void bdy_Cell (
 	__constant		sBdyCellConfiguration *,
 	__global		cl_ulong const * restrict,
 	__global		cl_double4 const * restrict,
@@ -107,7 +108,7 @@ __kernel void bdy_Cell (
 	__global		cl_double *
 );
 
-__kernel void bdy_Gridded ( 
+__kernel void bdy_Gridded (
 	__constant		sBdyGriddedConfiguration *,
 	__global		cl_double const * restrict,
 	__global		cl_double *,
@@ -118,7 +119,7 @@ __kernel void bdy_Gridded (
 	__global		cl_double *
 );
 
-__kernel void bdy_Uniform ( 
+__kernel void bdy_Uniform (
 	__constant		sBdyUniformConfiguration *,
 	__global		cl_double2 const * restrict,
 	__global		cl_double *,
@@ -129,7 +130,7 @@ __kernel void bdy_Uniform (
 	__global		cl_double *
 );
 
-__kernel void bdy_SimplePipe ( 
+__kernel void bdy_SimplePipe (
 	__constant		sBndySPipeConfiguration *,
 	__global		cl_double *,
 	__global		cl_double *,

@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -34,9 +34,8 @@ using std::vector;
 CBoundaryUniform::CBoundaryUniform( CDomain* pDomain )
 {
 	this->ucValue = model::boundaries::uniformValues::kValueLossRate;
-
 	this->pDomain = pDomain;
-	this->dRatio = 1.0;
+	this->dRatio  = 1.0;
 }
 
 /*
@@ -45,7 +44,6 @@ CBoundaryUniform::CBoundaryUniform( CDomain* pDomain )
 CBoundaryUniform::~CBoundaryUniform()
 {
 	delete[] this->pTimeseries;
-
 	delete this->pBufferConfiguration;
 	delete this->pBufferTimeseries;
 }

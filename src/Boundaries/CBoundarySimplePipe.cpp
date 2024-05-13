@@ -260,6 +260,14 @@ void CBoundarySimplePipe::applyBoundary(COCLBuffer* pBufferCell)
 		double dBedStart = pDomain->getBedElevation(pDomain->getCellID(this->startCellX, this->startCellY));
 		double dBedEnd = pDomain->getBedElevation(pDomain->getCellID(this->endCellX, this->endCellY));
 
+		if (this->invertStart < dBedStart) {
+			this->invertStart = dBedStart;
+			std::cout << "WARNING: automatically setting invertStart to bedlevel: " << dBedStart << std::endl;
+		}
+		if (this->invertEnd < dBedEnd) {
+			this->invertEnd = dBedEnd;
+			std::cout << "WARNING: automatically setting invertEnd to bedlevel: " << dBedEnd << std::endl;
+		}
 		if (this->invertStart < dBedStart || this->invertEnd < dBedEnd) {
 			model::doError(
 				"Pipe '" + this->sName + "' has invert lower than bed elevation.",
