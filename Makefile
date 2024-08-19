@@ -1,10 +1,10 @@
 ifeq (,$(wildcard /usr/local/bin/mpic++))
 	CPP = g++
-	MACROS := -D MPI_OFF -std=c++17 -O3 -march=native
+	MACROS := -D MPI_OFF -std=c++17 -O3 -march=native -ggdb
 	# -DDEBUG -DDEBUG_OPENCL -DDEBUG_MPI
 else
 	CPP = /usr/local/bin/mpic++
-	MACROS := -D MPI_ON -std=c++17 -O3 -march=native
+	MACROS := -D MPI_ON -std=c++17 -O3 -march=native -ggdb
 	# -DDEBUG -DDEBUG_OPENCL -DDEBUG_MPI
 endif
 

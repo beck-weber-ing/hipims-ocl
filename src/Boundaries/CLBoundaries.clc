@@ -513,8 +513,8 @@ __kernel void bdy_SimplePipe (
 		pEndData.w = 0.0;
 	}
 
-	pStartData.x = max(dStartBed, pStartData.x - (dPipeDischarge * dLocalTimestep) / DOMAIN_DELTAX / DOMAIN_DELTAY);
-	pEndData.x = max(dEndBed, pEndData.x) + (dPipeDischarge * dLocalTimestep) / DOMAIN_DELTAX / DOMAIN_DELTAY;
+	pStartData.x = max(dStartBed, pStartData.x - (dPipeDischarge * dLocalTimestep) / (DOMAIN_DELTAX * DOMAIN_DELTAY));
+	pEndData.x = max(dEndBed, pEndData.x) + (dPipeDischarge * dLocalTimestep) / (DOMAIN_DELTAX * DOMAIN_DELTAY);
 
 	// VERY_SMALL water depth has no velocity
 	if (pStartData.x < dStartBed + VERY_SMALL) {

@@ -23,6 +23,8 @@
 #include "CBoundary.h"
 #include "CBoundaryGridded.h"
 
+#include <string>
+
 class CBoundaryStreamingGridded : public CBoundary {
    public:
 	CBoundaryStreamingGridded(CDomain* = NULL);
@@ -86,10 +88,14 @@ class CBoundaryStreamingGridded : public CBoundary {
 	double dTimeseriesLength;
 	double dTimeseriesInterval;
 	bool singlePrecision;
-	
-	CBoundaryStreamingGriddedEntry** pTimeseries;
+	unsigned int currentSeriesStep = 0xFFFFFFFF;
+
+	//CBoundaryStreamingGriddedEntry** pTimeseries;
+	CBoundaryStreamingGriddedEntry* buffer;
 	CBoundaryGridded::SBoundaryGridTransform* pTransform;
 	unsigned int uiTimeseriesLength;
+
+	std::vector<std::string> sFilenames;
 
 	// COCLBuffer*				pBufferTimeseries;
 	COCLBuffer* pBufferValues;

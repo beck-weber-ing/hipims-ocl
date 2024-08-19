@@ -119,6 +119,17 @@ __kernel void bdy_Gridded (
 	__global		cl_double *
 );
 
+__kernel void bdy_StreamingGridded (
+	__constant		sBdyGriddedConfiguration *,
+	__global		cl_double const * restrict,
+	__global		cl_double *,
+	__global		cl_double *,
+	__global		cl_double *,
+	__global		cl_double4 *,
+	__global		cl_double *,
+	__global		cl_double *
+);
+
 __kernel void bdy_Uniform (
 	__constant		sBdyUniformConfiguration *,
 	__global		cl_double2 const * restrict,
