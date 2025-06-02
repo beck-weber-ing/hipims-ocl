@@ -1704,7 +1704,7 @@ void	CSchemeGodunov::scheduleIteration(
 	// Main scheme kernel
 	oclKernelFullTimestep->scheduleExecution();
 
-	pDomain->getBoundaries()->streamBoundaries(this->getCurrentTime());
+	//pDomain->getBoundaries()->streamBoundaries(this->getCurrentTime());
 
 	pDevice->queueBarrier();
 
@@ -1716,6 +1716,8 @@ void	CSchemeGodunov::scheduleIteration(
 	}
 
 
+	pDomain->getBoundaries()->streamBoundaries(this->getCurrentTime());
+	pDevice->queueBarrier();
 
 	// Run the boundary kernels (each bndy has its own kernel now)
 	pDomain->getBoundaries()->applyBoundaries(bUseAlternateKernel ? oclBufferCellStates : oclBufferCellStatesAlt);

@@ -257,6 +257,8 @@ void CBoundarySimplePipe::applyBoundary(COCLBuffer* pBufferCell)
 	if (!this->bedElevationChecked) {
 		CDomainCartesian* pDomain = static_cast<CDomainCartesian*>(this->pDomain);
 
+		std::cout << "DEBUG: " << this->sName << std::endl;
+
 		double dBedStart = pDomain->getBedElevation(pDomain->getCellID(this->startCellX, this->startCellY));
 		double dBedEnd = pDomain->getBedElevation(pDomain->getCellID(this->endCellX, this->endCellY));
 

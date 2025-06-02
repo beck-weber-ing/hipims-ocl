@@ -40,8 +40,7 @@ using std::vector;
  */
 CBoundaryStreamingGridded::CBoundaryStreamingGridded(CDomain* pDomain) {
 	this->ucValue = model::boundaries::griddedValues::kValueRainIntensity;
-
-	this->pTimeseries = NULL;
+	this->buffer = NULL;
 	this->pTransform = NULL;
 	this->pBufferConfiguration = NULL;
 	this->pBufferValues = NULL;
@@ -54,9 +53,7 @@ CBoundaryStreamingGridded::CBoundaryStreamingGridded(CDomain* pDomain) {
  *  Destructor
  */
 CBoundaryStreamingGridded::~CBoundaryStreamingGridded() {
-	for (unsigned int i = 0; i < this->uiTimeseriesLength; ++i)
-		delete this->pTimeseries[i];
-	delete[] this->pTimeseries;
+	delete this->buffer;
 	delete this->pTransform;
 	delete this->pBufferConfiguration;
 	delete this->pBufferValues;
@@ -101,7 +98,7 @@ bool CBoundaryStreamingGridded::setupFromConfig(XMLElement* pElement, std::strin
 	// Allocate memory for the array of gridded inputs
 	// this->uiTimeseriesLength = static_cast<unsigned int>(ceil(pManager->getSimulationLength() / dInterval)) + 1;
 	this->uiTimeseriesLength = static_cast<unsigned int>(floor(pManager->getSimulationLength() / dInterval)) + 1;
-	this->pTimeseries = new CBoundaryStreamingGriddedEntry*[this->uiTimeseriesLength];
+	//this->pTimeseries = new CBoundaryStreamingGriddedEntry*[this->uiTimeseriesLength];
 	CBoundaryGridded::SBoundaryGridTransform* pTransform = NULL;
 
 	this->dTimeseriesInterval = dInterval;
@@ -122,18 +119,16 @@ bool CBoundaryStreamingGridded::setupFromConfig(XMLElement* pElement, std::strin
 			continue;
 		}
 
-		// Load the raster...
-		CRasterDataset* pRaster = new CRasterDataset();
-		pRaster->openFileRead(sFilename);
+		this->sFilenames.push_back(sFilename);
+		++ulEntry;
 
 		// First raster? Need to come up with a transformation...
-		if (pTransform == NULL)
+		if (pTransform == NULL) {
+			CRasterDataset* pRaster = new CRasterDataset();
+			pRaster->openFileRead(sFilename);
 			pTransform = pRaster->createTransformationForDomain(static_cast<CDomainCartesian*>(this->pDomain));
-
-		// Store the data...
-		this->pTimeseries[ulEntry++] = new CBoundaryStreamingGriddedEntry(dTime, pRaster->createArrayForBoundary(pTransform));
-
-		delete pRaster;
+			delete pRaster;
+		}
 	}
 
 	this->pTransform = pTransform;
@@ -142,12 +137,12 @@ bool CBoundaryStreamingGridded::setupFromConfig(XMLElement* pElement, std::strin
 }
 
 void CBoundaryStreamingGridded::prepareBoundary(COCLDevice* pDevice,
-												COCLProgram* pProgram,
-												COCLBuffer* pBufferBed,
-												COCLBuffer* pBufferManning,
-												COCLBuffer* pBufferTime,
-												COCLBuffer* pBufferTimeHydrological,
-												COCLBuffer* pBufferTimestep) {
+						COCLProgram* pProgram,
+						COCLBuffer* pBufferBed,
+						COCLBuffer* pBufferManning,
+						COCLBuffer* pBufferTime,
+						COCLBuffer* pBufferTimeHydrological,
+						COCLBuffer* pBufferTimestep) {
 	if (this->pTransform == NULL)
 		return;
 
@@ -187,6 +182,7 @@ void CBoundaryStreamingGridded::prepareBoundary(COCLDevice* pDevice,
 		}
 		*/
 	} else {
+		this->singlePrecision = false;
 		sConfigurationDP pConfiguration;
 
 		pConfiguration.TimeseriesEntries = this->uiTimeseriesLength;
@@ -255,18 +251,42 @@ void CBoundaryStreamingGridded::streamBoundary(double dTime) {
 
 	// ...
 	// TODO: Should we handle all the memory buffer writing in here?...
-	unsigned int t = min(floor(dTime / dTimeseriesInterval), this->uiTimeseriesLength);
+	unsigned int t = min(static_cast<unsigned int>(floor(dTime / dTimeseriesInterval)), this->uiTimeseriesLength);
 	//__private cl_ulong ulTimestep = (cl_ulong)floor( dLclTime / pConfig.TimeseriesInterval );
 	//if ( ulTimestep >= pConfig.TimeseriesEntries ) ulTimestep = pConfig.TimeseriesEntries;
+	if(this->currentSeriesStep > 0x7FFFFFFF) std::cout << "DEBUG SGB bootstrap css: " << this->currentSeriesStep << " t: " << t << " dTime: " << dTime << " dTimeseriesInterval: " << dTimeseriesInterval << std::endl;
+	if(this->currentSeriesStep == t) return;
+	std::cout << "DEBUG SGB initiate streaming # css: " << this->currentSeriesStep << " t: " << t << " dTime: " << dTime << " dTimeseriesInterval: " << dTimeseriesInterval  << std::endl;
+	this->currentSeriesStep = t;
+
+	// Load the raster...
+	CRasterDataset* pRaster = new CRasterDataset();
+	pRaster->openFileRead(this->sFilenames[t]);
+	this->buffer = new CBoundaryStreamingGriddedEntry(dTime, pRaster->createArrayForBoundary(pTransform));
+	delete pRaster;
 
 	if (this->singlePrecision) {
-		void* pGridData = this->pTimeseries[t]->getBufferData(model::floatPrecision::kSingle, this->pTransform);
+		std::cout << "DEBUG SGB SINGLE" << std::endl;
+		void* pGridData = this->buffer->getBufferData(model::floatPrecision::kSingle, this->pTransform);
 		unsigned long size = sizeof(cl_float) * this->pTransform->uiColumns * this->pTransform->uiRows;
 		std::memcpy(&((this->pBufferValues->getHostBlock<cl_uchar*>())[0]), pGridData, size);
 		delete[] pGridData;
 	} else {
-		void* pGridData = this->pTimeseries[t]->getBufferData(model::floatPrecision::kDouble, this->pTransform);
+		std::cout << "DEBUG SGB DOUBLE" << std::endl;
+		void* pGridData = this->buffer->getBufferData(model::floatPrecision::kDouble, this->pTransform);
 		unsigned long size = sizeof(cl_double) * this->pTransform->uiColumns * this->pTransform->uiRows;
+
+		bool debug_check{false};
+		for(uint i{0};i < size/sizeof(cl_double);++i) {
+			double * ptr { static_cast<double*>(pGridData) };
+			if(ptr[i] > 0) {
+				std::cout << "DEBUG SGB non-zero data found: " << ptr[i] << std::endl;
+				debug_check = true;
+				break;
+			}
+		}
+		if(!debug_check) std::cout << "DEBUG SGB non-zero data check FAILED" << std::endl;
+
 		std::memcpy(&((this->pBufferValues->getHostBlock<cl_uchar*>())[0]), pGridData, size);
 		delete[] pGridData;
 	}
