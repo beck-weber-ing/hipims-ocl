@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -16,7 +16,7 @@
  *  FRICTION
  * ------------------------------------------
  *  Calculate the timestep using a reduction
- *  procedure and increment the total model 
+ *  procedure and increment the total model
  *  time.
  * ------------------------------------------
  *
@@ -26,16 +26,16 @@
 
 // Function definitions
 __kernel  REQD_WG_SIZE_FULL_TS
-void per_Friction ( 
+void per_Friction (
 	__constant	cl_double *,
 	__global	cl_double4 *,
-	__global	cl_double *,
-	__global	cl_double *,
-	__global	cl_double *  	// TEMP only for rainfall		
+	__global	cl_double const * restrict,
+	__global	cl_double const * restrict
 );
 
 cl_double4 implicitFriction(
 	cl_double4,
+	cl_double,
 	cl_double,
 	cl_double,
 	cl_double

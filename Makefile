@@ -1,9 +1,11 @@
 ifeq (,$(wildcard /usr/local/bin/mpic++))
 	CPP = g++
-	MACROS := -D MPI_OFF -std=c++17 -O3 -march=native
+	MACROS := -D MPI_OFF -std=c++17 -O3 -march=native -ggdb
+	# -DDEBUG -DDEBUG_OPENCL -DDEBUG_MPI
 else
 	CPP = /usr/local/bin/mpic++
-	MACROS := -D MPI_ON -std=c++17 -O3 -march=native
+	MACROS := -D MPI_ON -std=c++17 -O3 -march=native -ggdb
+	# -DDEBUG -DDEBUG_OPENCL -DDEBUG_MPI
 endif
 
 CPP_FILES := $(wildcard src/*.cpp) $(wildcard src/*/*.cpp) $(wildcard src/*/*/*.cpp) $(wildcard src/*/*/*/*.cpp) $(wildcard src/*/*/*/*/*.cpp)
@@ -30,4 +32,3 @@ release:
 	find . -name \*.vcx* -execdir rm {} \;
 	find . -name \*.rc -execdir rm {} \;
 	find . -name \*.aps -execdir rm {} \;
-

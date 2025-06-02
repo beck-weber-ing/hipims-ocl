@@ -12,7 +12,7 @@
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Materials.
  *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WA§RRANTY OF ANY KIND,
+ * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WAï¿½RRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
  * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
@@ -34,18 +34,18 @@ extern "C" {
 
 #include <OpenCL/cl.h>
 #include <OpenCL/cl_gl.h>
-#ifndef USE_SIMPLE_ARCH_OPENCL
-#include <OpenCL/cl_gl_ext.h>
-#endif
+// #ifndef USE_SIMPLE_ARCH_OPENCL
+// #include <OpenCL/cl_gl_ext.h>
+// #endif
 #include <OpenCL/cl_ext.h>
 
 #else
 
 #include <CL/cl.h>
 #include <CL/cl_gl.h>
-#ifndef USE_SIMPLE_ARCH_OPENCL
-#include <CL/cl_gl_ext.h>
-#endif
+// #ifndef USE_SIMPLE_ARCH_OPENCL
+// #include <CL/cl_gl_ext.h>
+// #endif
 #include <CL/cl_ext.h>
 
 #endif
@@ -55,4 +55,3 @@ extern "C" {
 #endif
 
 #endif  /* __OPENCL_H   */
-

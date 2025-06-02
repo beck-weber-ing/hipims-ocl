@@ -67,7 +67,7 @@ bool CBoundaryCell::setupFromConfig(XMLElement* pElement, std::string sBoundaryS
 	Util::toLowercase(&cBoundarySource,		pElement->Attribute("source"));
 	Util::toLowercase(&cBoundaryMap,		pElement->Attribute("mapFile"));
 	Util::toLowercase(&cBoundaryDepth,		pElement->Attribute("depthValue"));
-	Util::toLowercase(&cBoundaryDischarge,  pElement->Attribute("dischargeValue"));
+	Util::toLowercase(&cBoundaryDischarge,		pElement->Attribute("dischargeValue"));
 
 	this->sName = std::string( cBoundaryName );
 
@@ -123,17 +123,16 @@ bool CBoundaryCell::setupFromConfig(XMLElement* pElement, std::string sBoundaryS
 	delete pCSVFile;
 
 	// Map file is optional -- could also have a single map file for all boundaries
-	if ( cBoundaryMap == NULL )
+	if ( cBoundaryMap == NULL ) {
+		std::cout << "DEBUG: CBoundaryCell without map." << std::endl;
 		return true;
-
+	}
 	// Map file...
 	pCSVFile = new CCSVDataset(
 		sBoundarySourceDir + std::string(cBoundaryMap)
 	);
-	if (pCSVFile->readFile())
-	{
-		if (pCSVFile->isReady())
-			this->importMap(pCSVFile);
+	if (pCSVFile->readFile() && pCSVFile->isReady()) {
+			this->importMap(pCSVFile,true);
 	}
 	else {
 		model::doError(
@@ -160,6 +159,7 @@ void CBoundaryCell::importTimeseries(CCSVDataset *pCSV)
 	if (!pCSV->isReady())
 		return;
 
+	std::cout << __PRETTY_FUNCTION__ << " allocate pTimeseries for " << pCSV->getLength() << std::endl;
 	this->pTimeseries = new sTimeseriesCell[pCSV->getLength()];
 
 	for (vector<vector<std::string>>::const_iterator it = pCSV->begin();
@@ -211,6 +211,8 @@ void CBoundaryCell::importTimeseries(CCSVDataset *pCSV)
 		);
 		return;
 	}
+	
+	std::cout << "DEBUG: parsed " << uiIndex << " steps in timeseries for CBoundaryCell." << std::endl;
 
 	this->dTimeseriesInterval = pTimeseries[1].dTime - pTimeseries[0].dTime;
 	this->uiTimeseriesLength = uiIndex;
@@ -230,7 +232,7 @@ void CBoundaryCell::importTimeseries(CCSVDataset *pCSV)
 /*
  *	Import cell map data from a CSV file
  */
-void CBoundaryCell::importMap(CCSVDataset *pCSV)
+void CBoundaryCell::importMap(CCSVDataset *pCSV, bool realCoordinates)
 {
 	unsigned int uiIndex = 0;
 	bool bInvalidEntries = false;
@@ -241,6 +243,16 @@ void CBoundaryCell::importMap(CCSVDataset *pCSV)
 
 	this->pRelations = new sRelationCell[pCSV->getLength()];
 	this->uiRelationCount = 0;
+
+	CDomainCartesian* pDomain = static_cast<CDomainCartesian*>(this->pDomain);
+
+	if (pDomain->isRemote()) {
+		return;
+	}
+
+	double dCornerN, dCornerE, dCornerS, dCornerW, dResolution;
+	pDomain->getCellResolution(&dResolution);
+	pDomain->getRealExtent(&dCornerN, &dCornerE, &dCornerS, &dCornerW);
 
 	for (vector<vector<std::string>>::const_iterator it = pCSV->begin();
 		it != pCSV->end();
@@ -257,8 +269,15 @@ void CBoundaryCell::importMap(CCSVDataset *pCSV)
 		{
 			try
 			{
-				this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
-				this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
+				if (realCoordinates) {
+					this->pRelations[uiIndex].uiCellX = floor((boost::lexical_cast<double>((*it)[0]) - dCornerW) / dResolution);
+					this->pRelations[uiIndex].uiCellY = floor((boost::lexical_cast<double>((*it)[1]) - dCornerS) / dResolution);
+				}
+				else
+				{
+					this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
+					this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
+				}
 				uiIndex++;
 			}
 			catch (boost::bad_lexical_cast)
@@ -270,8 +289,15 @@ void CBoundaryCell::importMap(CCSVDataset *pCSV)
 			{
 				if ((*it)[2] == this->getName())
 				{
-					this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
-					this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
+					if (realCoordinates) {
+						this->pRelations[uiIndex].uiCellX = floor((boost::lexical_cast<double>((*it)[0]) - dCornerW) / dResolution);
+						this->pRelations[uiIndex].uiCellY = floor((boost::lexical_cast<double>((*it)[1]) - dCornerS) / dResolution);
+					}
+					else
+					{
+						this->pRelations[uiIndex].uiCellX = boost::lexical_cast<unsigned int>((*it)[0]);
+						this->pRelations[uiIndex].uiCellY = boost::lexical_cast<unsigned int>((*it)[1]);
+					}
 					uiIndex++;
 				}
 			}
@@ -290,6 +316,8 @@ void CBoundaryCell::importMap(CCSVDataset *pCSV)
 			"Some CSV entries were not valid for a boundary map file.",
 			model::errorCodes::kLevelWarning
 		);
+	} else {
+		std::cout << "DEBUG: parsed " << uiIndex << " relations (points) for CBoundaryCell." << std::endl;
 	}
 
 	this->uiRelationCount = uiIndex;
@@ -311,7 +339,7 @@ void CBoundaryCell::prepareBoundary(
 	if ( pProgram->getFloatForm() == model::floatPrecision::kSingle )
 	{
 		sConfigurationSP pConfiguration;
-		
+
 		pConfiguration.TimeseriesEntries  = this->uiTimeseriesLength;
 		pConfiguration.TimeseriesInterval = this->dTimeseriesInterval;
 		pConfiguration.TimeseriesLength   = this->dTimeseriesLength;
@@ -390,7 +418,12 @@ void CBoundaryCell::prepareBoundary(
 		cl_double4 *pTimeseries = this->pBufferTimeseries->getHostBlock<cl_double4*>();
 		for (unsigned int i = 0; i < this->uiTimeseriesLength; ++i)
 		{
+			std::cout << "DEBUG: " << __PRETTY_FUNCTION__ << " timeseries " << i << " / " << this->uiTimeseriesLength << " " << (void*)pTimeseries << " " << (void*)this->pTimeseries << std::endl;
+			std::cout << "DEBUG: " << this->pTimeseries[i].dTime << std::endl; 
+			std::cout << "DEBUG: " << pTimeseries[i].s[0] << std::endl; 
+			pTimeseries[i].s[0] = 123.0;
 			pTimeseries[i].s[0] = this->pTimeseries[i].dTime;
+			std::cout << "DEBUG: MARK" << std::endl; 
 			pTimeseries[i].s[1] = this->pTimeseries[i].dDepthComponent;
 			pTimeseries[i].s[2] = this->pTimeseries[i].dDischargeComponentX;
 			pTimeseries[i].s[3] = this->pTimeseries[i].dDischargeComponentY;

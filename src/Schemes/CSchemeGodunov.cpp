@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -20,6 +20,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string_regex.hpp>
 #include <algorithm>
+
+#include <chrono>
+using namespace std::chrono_literals;
 
 #include "../common.h"
 #include "../main.h"
@@ -45,21 +48,21 @@ CSchemeGodunov::CSchemeGodunov()
 	pManager->log->writeLine( "Godunov-type scheme loaded for execution on OpenCL platform." );
 
 	// Default setup values
-	this->bRunning						= false;
+	this->bRunning					= false;
 	this->bThreadRunning				= false;
 	this->bThreadTerminated				= false;
-	this->bDebugOutput					= false;
-	this->uiDebugCellX					= 9999;
-	this->uiDebugCellY					= 9999;
+	this->bDebugOutput				= false;
+	this->uiDebugCellX				= 9999;
+	this->uiDebugCellY				= 9999;
 
-	this->dCurrentTime					= 0.0;
+	this->dCurrentTime				= 0.0;
 	this->dThresholdVerySmall			= 1E-10;
 	this->dThresholdQuiteSmall			= this->dThresholdVerySmall * 10;
 	this->bFrictionInFluxKernel			= true;
 	this->bIncludeBoundaries			= false;
 	this->uiTimestepReductionWavefronts = 200;
 
-	this->ucSolverType					= model::solverTypes::kHLLC;
+	this->ucSolverType				= model::solverTypes::kHLLC;
 	this->ucConfiguration				= model::schemeConfigurations::godunovType::kCacheNone;
 	this->ucCacheConstraints			= model::cacheConstraints::godunovType::kCacheActualSize;
 
@@ -126,7 +129,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 
 		// These parameter apply to Godunov and all its child classes
 		if ( strcmp( cParameterName, "courantnumber" ) == 0 )
-		{ 
+		{
 			if ( !CXMLDataset::isValidFloat( cParameterValue ) )
 			{
 				model::doError(
@@ -138,7 +141,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 			}
 		}
 		else if ( strcmp( cParameterName, "drythreshold" ) == 0 )
-		{ 
+		{
 			if ( !CXMLDataset::isValidFloat( cParameterValue ) )
 			{
 				model::doError(
@@ -150,7 +153,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 			}
 		}
 		else if ( strcmp( cParameterName, "timestepmode" ) == 0 )
-		{ 
+		{
 			unsigned char ucTimestepMode = 255;
 			if ( strcmp( cParameterValue, "auto" ) == 0 ||
 					strcmp( cParameterValue, "cfl" ) == 0 )
@@ -169,7 +172,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 		}
 		else if ( strcmp( cParameterName, "timestepinitial" ) == 0 ||
 					strcmp( cParameterName, "timestepfixed" ) == 0 )
-		{ 
+		{
 			if ( !CXMLDataset::isValidFloat( cParameterValue ) )
 			{
 				model::doError(
@@ -181,7 +184,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 			}
 		}
 		else if ( strcmp( cParameterName, "timestepreductiondivisions" ) == 0 )
-		{ 
+		{
 			if ( !CXMLDataset::isValidUnsignedInt( cParameterValue ) )
 			{
 				model::doError(
@@ -193,7 +196,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 			}
 		}
 		else if ( strcmp( cParameterName, "frictioneffects" ) == 0 )
-		{ 
+		{
 			unsigned char ucFriction = 255;
 			if ( strcmp( cParameterValue, "yes" ) == 0 )
 				ucFriction = 1;
@@ -210,7 +213,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 			}
 		}
 		else if ( strcmp( cParameterName, "riemannsolver" ) == 0 )
-		{ 
+		{
 			unsigned char ucSolver = 255;
 			if ( strcmp( cParameterValue, "hllc" ) == 0 )
 				ucSolver = model::solverTypes::kHLLC;
@@ -249,7 +252,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 			}
 		}
 		else if ( strcmp( cParameterName, "cachedgroupsize" ) == 0 )
-		{ 
+		{
 			std::string sParameterValue = std::string( cParameterValue );
 			std::vector<std::string> sSizes;
 			boost::split(sSizes, sParameterValue, boost::is_any_of("x"));
@@ -271,7 +274,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 			}
 		}
 		else if ( strcmp( cParameterName, "noncachedgroupsize" ) == 0 )
-		{ 
+		{
 			std::string sParameterValue = std::string( cParameterValue );
 			std::vector<std::string> sSizes;
 			boost::split(sSizes, sParameterValue, boost::is_any_of("x"));
@@ -296,7 +299,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 		if ( !bInheritanceChain )
 		{
 			if ( strcmp( cParameterName, "localcachelevel" ) == 0 )
-			{ 
+			{
 				unsigned char usCache = 255;
 				if ( strcmp( cParameterValue, "maximum" ) == 0 || strcmp( cParameterValue, "max" ) == 0 || strcmp( cParameterValue, "enabled" ) == 0 )
 					usCache = model::schemeConfigurations::godunovType::kCacheEnabled;
@@ -313,7 +316,7 @@ void	CSchemeGodunov::setupFromConfig( XMLElement* pXScheme, bool bInheritanceCha
 				}
 			}
 			else if ( strcmp( cParameterName, "localcacheconstraints" ) == 0 )
-			{ 
+			{
 				unsigned char ucCacheConstraints = 255;
 				if ( strcmp( cParameterValue, "none" ) == 0 || strcmp( cParameterValue, "normal" ) == 0 || strcmp( cParameterValue, "actual" ) == 0 )
 					ucCacheConstraints = model::cacheConstraints::godunovType::kCacheActualSize;
@@ -403,8 +406,8 @@ void CSchemeGodunov::prepareAll()
 	this->oclModel->setForcedSinglePrecision( pManager->getFloatPrecision() == model::floatPrecision::kSingle );
 
 	// OpenCL elements
-	if ( !this->prepare1OExecDimensions() ) 
-	{ 
+	if ( !this->prepare1OExecDimensions() )
+	{
 		model::doError(
 			"Failed to dimension task. Cannot continue.",
 			model::errorCodes::kLevelModelStop
@@ -413,8 +416,8 @@ void CSchemeGodunov::prepareAll()
 		return;
 	}
 
-	if ( !this->prepare1OConstants() ) 
-	{ 
+	if ( !this->prepare1OConstants() )
+	{
 		model::doError(
 			"Failed to allocate constants. Cannot continue.",
 			model::errorCodes::kLevelModelStop
@@ -423,8 +426,8 @@ void CSchemeGodunov::prepareAll()
 		return;
 	}
 
-	if ( !this->prepareCode() ) 
-	{ 
+	if ( !this->prepareCode() )
+	{
 		model::doError(
 			"Failed to prepare model codebase. Cannot continue.",
 			model::errorCodes::kLevelModelStop
@@ -433,8 +436,8 @@ void CSchemeGodunov::prepareAll()
 		return;
 	}
 
-	if ( !this->prepare1OMemory() ) 
-	{ 
+	if ( !this->prepare1OMemory() )
+	{
 		model::doError(
 			"Failed to create memory buffers. Cannot continue.",
 			model::errorCodes::kLevelModelStop
@@ -443,8 +446,8 @@ void CSchemeGodunov::prepareAll()
 		return;
 	}
 
-	if ( !this->prepareGeneralKernels() ) 
-	{ 
+	if ( !this->prepareGeneralKernels() )
+	{
 		model::doError(
 			"Failed to prepare general kernels. Cannot continue.",
 			model::errorCodes::kLevelModelStop
@@ -453,8 +456,8 @@ void CSchemeGodunov::prepareAll()
 		return;
 	}
 
-	if ( !this->prepare1OKernels() ) 
-	{ 
+	if ( !this->prepare1OKernels() )
+	{
 		model::doError(
 			"Failed to prepare kernels. Cannot continue.",
 			model::errorCodes::kLevelModelStop
@@ -582,13 +585,13 @@ unsigned char	CSchemeGodunov::getCacheMode()
 /*
  *  Set the cache size
  */
-void	CSchemeGodunov::setCachedWorkgroupSize( unsigned char ucSize ) 
+void	CSchemeGodunov::setCachedWorkgroupSize( unsigned char ucSize )
 	{ this->ulCachedWorkgroupSizeX = ucSize; this->ulCachedWorkgroupSizeY = ucSize; }
-void	CSchemeGodunov::setCachedWorkgroupSize( unsigned char ucSizeX, unsigned char ucSizeY ) 
+void	CSchemeGodunov::setCachedWorkgroupSize( unsigned char ucSizeX, unsigned char ucSizeY )
 	{ this->ulCachedWorkgroupSizeX = ucSizeX; this->ulCachedWorkgroupSizeY = ucSizeY; }
-void	CSchemeGodunov::setNonCachedWorkgroupSize( unsigned char ucSize ) 
+void	CSchemeGodunov::setNonCachedWorkgroupSize( unsigned char ucSize )
 	{ this->ulNonCachedWorkgroupSizeX = ucSize; this->ulNonCachedWorkgroupSizeY = ucSize; }
-void	CSchemeGodunov::setNonCachedWorkgroupSize( unsigned char ucSizeX, unsigned char ucSizeY ) 
+void	CSchemeGodunov::setNonCachedWorkgroupSize( unsigned char ucSizeX, unsigned char ucSizeY )
 	{ this->ulNonCachedWorkgroupSizeX = ucSizeX; this->ulNonCachedWorkgroupSizeY = ucSizeY; }
 
 /*
@@ -638,14 +641,14 @@ bool CSchemeGodunov::prepare1OExecDimensions()
 	ulNonCachedGlobalSizeY	= pDomain->getRows();
 
 	if ( this->ulCachedWorkgroupSizeX == 0 )
-		ulCachedWorkgroupSizeX = ulConstraintWG + 
+		ulCachedWorkgroupSizeX = ulConstraintWG +
 							 ( this->ucCacheConstraints == model::cacheConstraints::musclHancock::kCacheAllowUndersize ? -1 : 0 );
 	if ( this->ulCachedWorkgroupSizeY == 0 )
 		ulCachedWorkgroupSizeY = ulConstraintWG;
 
-	ulCachedGlobalSizeX	= static_cast<unsigned long>( ceil( pDomain->getCols() * 
+	ulCachedGlobalSizeX	= static_cast<unsigned long>( ceil( pDomain->getCols() *
 						  ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheEnabled ? static_cast<double>( ulCachedWorkgroupSizeX ) / static_cast<double>( ulCachedWorkgroupSizeX - 2 ) : 1.0 ) ) );
-	ulCachedGlobalSizeY	= static_cast<unsigned long>( ceil( pDomain->getRows() * 
+	ulCachedGlobalSizeY	= static_cast<unsigned long>( ceil( pDomain->getRows() *
 						  ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheEnabled ? static_cast<double>( ulCachedWorkgroupSizeY ) / static_cast<double>( ulCachedWorkgroupSizeY - 2 ) : 1.0 ) ) );
 
 	// --
@@ -674,7 +677,7 @@ bool CSchemeGodunov::prepare1OConstants()
 	oclModel->registerConstant( "QUITE_SMALL",			toString( this->dThresholdQuiteSmall ) );
 
 	// --
-	// Debug mode 
+	// Debug mode
 	// --
 
 	if ( this->bDebugOutput )
@@ -694,21 +697,21 @@ bool CSchemeGodunov::prepare1OConstants()
 
 	if ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheNone )
 	{
-		oclModel->registerConstant( 
-			"REQD_WG_SIZE_FULL_TS", 
+		oclModel->registerConstant(
+			"REQD_WG_SIZE_FULL_TS",
 			"__attribute__((reqd_work_group_size(" + toString( this->ulNonCachedWorkgroupSizeX )  + ", " + toString( this->ulNonCachedWorkgroupSizeY )  + ", 1)))"
 		);
-	} 
+	}
 	if ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheEnabled )
 	{
-		oclModel->registerConstant( 
-			"REQD_WG_SIZE_FULL_TS", 
+		oclModel->registerConstant(
+			"REQD_WG_SIZE_FULL_TS",
 			"__attribute__((reqd_work_group_size(" + toString( this->ulNonCachedWorkgroupSizeX )  + ", " + toString( this->ulNonCachedWorkgroupSizeY )  + ", 1)))"
 		);
-	} 
+	}
 
-	oclModel->registerConstant( 
-		"REQD_WG_SIZE_LINE", 
+	oclModel->registerConstant(
+		"REQD_WG_SIZE_LINE",
 		"__attribute__((reqd_work_group_size(" + toString( this->ulReductionWorkgroupSize )  + ", 1, 1)))"
 	);
 
@@ -779,6 +782,8 @@ bool CSchemeGodunov::prepare1OConstants()
 	oclModel->registerConstant( "DOMAIN_ROWS",			toString( pDomain->getRows() ) );
 	oclModel->registerConstant( "DOMAIN_DELTAX",		toString( dResolution ) );
 	oclModel->registerConstant( "DOMAIN_DELTAY",		toString( dResolution ) );
+	oclModel->registerConstant( "DOMAIN_DELTAX_R",		toString( 1.0 / dResolution ) );
+	oclModel->registerConstant( "DOMAIN_DELTAY_R",		toString( 1.0 / dResolution ) );
 
 	return true;
 }
@@ -831,7 +836,7 @@ bool CSchemeGodunov::prepare1OMemory()
 
 	oclBufferCellStates		= new COCLBuffer( "Cell states",			oclModel, false, true );
 	oclBufferCellStatesAlt	= new COCLBuffer( "Cell states (alternate)",oclModel, false, true );
-	oclBufferCellManning	= new COCLBuffer( "Manning coefficients",	oclModel, true,	true ); 
+	oclBufferCellManning	= new COCLBuffer( "Manning coefficients",	oclModel, true,	true );
 	oclBufferCellBed		= new COCLBuffer( "Bed elevations",			oclModel, true, true );
 
 	oclBufferCellStates->setPointer( pCellStates, ucFloatSize * 4 * pDomain->getCellCount() );
@@ -883,7 +888,7 @@ bool CSchemeGodunov::prepare1OMemory()
 
 	// VISUALISER STUFF
 	// TODO: Make this a bit better, put it somewhere else, etc.
-	oclBufferCellStates->setCallbackRead( CModel::visualiserCallback );
+	// oclBufferCellStates->setCallbackRead( CModel::visualiserCallback );
 
 	return bReturnState;
 }
@@ -935,7 +940,7 @@ bool CSchemeGodunov::prepareGeneralKernels()
 	oclKernelFriction->setGroupSize( this->ulNonCachedWorkgroupSizeX, this->ulNonCachedWorkgroupSizeY );
 	oclKernelFriction->setGlobalSize( this->ulNonCachedGlobalSizeX, this->ulNonCachedGlobalSizeY );
 
-	COCLBuffer* aryArgsFriction[] = { oclBufferTimestep, oclBufferCellStates, oclBufferCellBed, oclBufferCellManning, oclBufferTime };	
+	COCLBuffer* aryArgsFriction[] = { oclBufferTimestep, oclBufferCellStates, oclBufferCellBed, oclBufferCellManning };
 	oclKernelFriction->assignArguments( aryArgsFriction );
 
 	return bReturnState;
@@ -960,15 +965,14 @@ bool CSchemeGodunov::prepare1OKernels()
 		oclKernelFullTimestep = oclModel->getKernel( "gts_cacheDisabled" );
 		oclKernelFullTimestep->setGroupSize( this->ulNonCachedWorkgroupSizeX, this->ulNonCachedWorkgroupSizeY );
 		oclKernelFullTimestep->setGlobalSize( this->ulNonCachedGlobalSizeX, this->ulNonCachedGlobalSizeY );
-		COCLBuffer* aryArgsFullTimestep[] = { oclBufferTimestep, oclBufferCellBed, oclBufferCellStates, oclBufferCellStatesAlt, oclBufferCellManning };	
+		COCLBuffer* aryArgsFullTimestep[] = { oclBufferTimestep, oclBufferCellBed, oclBufferCellStates, oclBufferCellStatesAlt, oclBufferCellManning };
 		oclKernelFullTimestep->assignArguments( aryArgsFullTimestep );
-	}
-	if ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheEnabled )
+	} else if ( this->ucConfiguration == model::schemeConfigurations::godunovType::kCacheEnabled )
 	{
 		oclKernelFullTimestep = oclModel->getKernel( "gts_cacheEnabled" );
 		oclKernelFullTimestep->setGroupSize( this->ulCachedWorkgroupSizeX, this->ulCachedWorkgroupSizeY );
 		oclKernelFullTimestep->setGlobalSize( this->ulCachedGlobalSizeX, this->ulCachedGlobalSizeY );
-		COCLBuffer* aryArgsFullTimestep[] = { oclBufferTimestep, oclBufferCellBed, oclBufferCellStates, oclBufferCellStatesAlt, oclBufferCellManning };	
+		COCLBuffer* aryArgsFullTimestep[] = { oclBufferTimestep, oclBufferCellBed, oclBufferCellStates, oclBufferCellStatesAlt, oclBufferCellManning };
 		oclKernelFullTimestep->assignArguments( aryArgsFullTimestep );
 	}
 
@@ -1057,7 +1061,7 @@ void	CSchemeGodunov::prepareSimulation()
 	this->pDomain->getBoundaries()->applyDomainModifications();
 
 	// Initial volume in the domain
-	pManager->log->writeLine( "Initial domain volume: " + toString( abs((int)(this->pDomain->getVolume()) ) ) + "m3" );
+	pManager->log->writeLine( "Initial domain volume: " + toString( fabs((float)(this->pDomain->getVolume()) ) ) + " m²" );
 
 	// Copy the initial conditions
 	pManager->log->writeLine( "Copying domain data to device..." );
@@ -1075,7 +1079,7 @@ void	CSchemeGodunov::prepareSimulation()
 	bOverrideTimestep		= false;
 	bDownloadLinks			= false;
 	bImportLinks			= false;
-	bUseForcedTimeAdvance	= true;
+	bUseForcedTimeAdvance		= true;
 	bCellStatesSynced		= true;
 
 	// Need a timer...
@@ -1084,11 +1088,11 @@ void	CSchemeGodunov::prepareSimulation()
 	// Zero counters
 	ulCurrentCellsCalculated	= 0;
 	uiIterationsSinceSync		= 0;
-	uiIterationsSinceProgressCheck = 0;
-	dLastSyncTime				= 0.0;
+	uiIterationsSinceProgressCheck  = 0;
+	dLastSyncTime			= 0.0;
 
 	// States
-	bRunning = false;
+	setRunning(false);
 	bThreadRunning = false;
 	bThreadTerminated = false;
 }
@@ -1138,6 +1142,9 @@ void CSchemeGodunov::runBatchThread()
 	if (result == 0)
 		pthread_detach(tid);
 #endif
+#ifdef DEBUG_OPENCL
+	pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] runBatchThread finished");
+#endif
 }
 
 /*
@@ -1148,31 +1155,36 @@ void CSchemeGodunov::Threaded_runBatch()
 {
 	// Keep the thread in existence because of the overhead
 	// associated with creating a thread.
-	while (this->bThreadRunning)
-	{
-		// Are we expected to run?
-		if  (!this->bRunning || this->pDomain->getDevice()->isBusy())
-		{
-			if ( this->pDomain->getDevice()->isBusy() )
-			{
-				this->pDomain->getDevice()->blockUntilFinished();
-			}
-			continue;
-		}
+	while (this->bThreadRunning) {
+		//this->pDomain->getDevice()->flush();
 
-		// Have we been asked to update the target time?
-		if (this->bUpdateTargetTime)
+
+		// Are we expected to run?
 		{
-			this->bUpdateTargetTime = false;
-#ifdef DEBUG_MPI
-			pManager->log->writeLine("[DEBUG] Setting new target time of " + Util::secondsToTime(this->dTargetTime) + "...");
-#endif
-		
-			if (pManager->getFloatPrecision() == model::floatPrecision::kSingle)
-			{
-				*(oclBufferTimeTarget->getHostBlock<float*>()) = static_cast<cl_float>(this->dTargetTime);
+			std::shared_lock<std::shared_mutex> lock(mRunning);
+			if  (!this->bRunning || this->pDomain->getDevice()->isBusy()) {
+				// #ifdef DEBUG_OPENCL
+					// pManager->log->writeLine("[DEBUG] [domain: " + std::to_string(this->pDomain->getID()) + ", device: " + std::to_string(this->pDomain->getDevice()->getDeviceID()) + "] "
+					// 	"running: " + std::to_string(this->bRunning) + " "
+					// 	"busy: " + std::to_string(this->pDomain->getDevice()->isBusy()));
+				// #endif
+				if ( this->pDomain->getDevice()->isBusy() ) {
+					this->pDomain->getDevice()->blockUntilFinished();
+				}
+
+				continue;
 			}
-			else {
+		}
+		// Have we been asked to update the target time?
+		if (this->bUpdateTargetTime) {
+			this->bUpdateTargetTime = false;
+#ifdef DEBUG_OPENCL
+			pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] Setting new target time of " + Util::secondsToTime(this->dTargetTime) + " (dt: " + std::to_string(this->dCurrentTimestep) + ")...");
+#endif
+
+			if (pManager->getFloatPrecision() == model::floatPrecision::kSingle) {
+				*(oclBufferTimeTarget->getHostBlock<float*>()) = static_cast<cl_float>(this->dTargetTime);
+			} else {
 				*(oclBufferTimeTarget->getHostBlock<double*>()) = this->dTargetTime;
 			}
 			oclBufferTimeTarget->queueWriteAll();
@@ -1194,18 +1206,22 @@ void CSchemeGodunov::Threaded_runBatch()
 				pDomain->getDevice()->queueBarrier();
 				oclKernelTimestepUpdate->scheduleExecution();
 			}
-			
+
 			if ( dCurrentTime + dCurrentTimestep > dTargetTime + 1E-5 )
 			{
 				this->dCurrentTimestep  = dTargetTime - dCurrentTime;
 				this->bOverrideTimestep = true;
+
+#ifdef DEBUG_MPI
+				pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] Override timestep: " + Util::secondsToTime(this->dCurrentTimestep) + " ...");
+#endif
 			}
 
 			pDomain->getDevice()->queueBarrier();
 			//pDomain->getDevice()->blockUntilFinished();		// Shouldn't be needed
-			
+
 #ifdef DEBUG_MPI
-			pManager->log->writeLine("[DEBUG] Done updating new target time to " + Util::secondsToTime(this->dTargetTime) + "...");
+			pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] Done updating new target time to " + Util::secondsToTime(this->dTargetTime) + " ...");
 #endif
 		}
 
@@ -1213,7 +1229,7 @@ void CSchemeGodunov::Threaded_runBatch()
 		if ( //uiIterationsSinceSync < this->pDomain->getRollbackLimit() &&
 			 this->dCurrentTime < dTargetTime &&
 			 this->bOverrideTimestep )
-		{		
+		{
 			if (pManager->getFloatPrecision() == model::floatPrecision::kSingle)
 			{
 				*(oclBufferTimestep->getHostBlock<float*>()) = static_cast<cl_float>(this->dCurrentTimestep);
@@ -1262,11 +1278,12 @@ void CSchemeGodunov::Threaded_runBatch()
 
 		// Don't schedule any work if we're already at the sync point
 		// TODO: Review this...
-		//if (this->dCurrentTime > dTargetTime /* + 1E-5 */)
-		//{
-		//	bRunning = false;
-		//	continue;
-		//}
+		//       This does NOT fix the sync bug
+		// if (this->dCurrentTime > dTargetTime /* + 1E-5 */)
+		// {
+		// 	setRunning(false);
+		// 	continue;
+		// }
 
 		// Can only schedule one iteration before we need to sync timesteps
 		// if timestep sync method is active.
@@ -1276,18 +1293,18 @@ void CSchemeGodunov::Threaded_runBatch()
 
 #ifdef DEBUG_MPI
 		if ( uiQueueAmount > 0 )
-			pManager->log->writeLine("[DEBUG] Starting batch of " + toString(uiQueueAmount) + " with timestep " + Util::secondsToTime(this->dCurrentTimestep) + " at " + Util::secondsToTime(this->dCurrentTime) );
+			pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] Starting batch of " + toString(uiQueueAmount) + " with timestep " + Util::secondsToTime(this->dCurrentTimestep) + " at " + Util::secondsToTime(this->dCurrentTime) + " (dt: " + std::to_string(this->dCurrentTimestep) + ")");
 #endif
-			
+
 		// Schedule a batch-load of work for the device
 		// Do we need to run any work?
 		if ( uiIterationsSinceSync < this->pDomain->getRollbackLimit() &&
-			 this->dCurrentTime < dTargetTime )
+			 this->dCurrentTime /*+ 0.0000001*/ < dTargetTime )
 		{
 			for (unsigned int i = 0; i < uiQueueAmount; i++)
 			{
 #ifdef DEBUG_MPI
-				pManager->log->writeLine( "Scheduling a new iteration..." );
+				pManager->log->writeLine( "[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] Scheduling a new iteration..." );
 #endif
 				this->scheduleIteration(
 					bUseAlternateKernel,
@@ -1304,6 +1321,11 @@ void CSchemeGodunov::Threaded_runBatch()
 			this->bCellStatesSynced = false;
 		}
 
+
+#ifdef DEBUG_MPI
+		pManager->log->writeLine( "[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] timestep before sync: " + std::to_string(this->dCurrentTimestep) );
+#endif
+
 		// Schedule reading data back. We always need the timestep
 		// but we might not need the other details always...
 		oclBufferTimestep->queueReadAll();
@@ -1313,6 +1335,9 @@ void CSchemeGodunov::Threaded_runBatch()
 		oclBufferBatchTimesteps->queueReadAll();
 		uiIterationsSinceProgressCheck = 0;
 
+#ifdef DEBUG_MPI
+		pManager->log->writeLine( "[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] timestep after sync: " + std::to_string(this->dCurrentTimestep) );
+#endif
 #ifdef _WINDLL
 		oclBufferCellStates->queueReadAll();
 #endif
@@ -1323,9 +1348,10 @@ void CSchemeGodunov::Threaded_runBatch()
 			// We need to know the time...
 			this->pDomain->getDevice()->blockUntilFinished();
 			this->readKeyStatistics();
-		
+			this->dCurrentTimestep = std::max(this->dCurrentTimestep,decltype(this->dCurrentTimestep){0}); // DEBUG-NINNGHAZAD
+
 #ifdef DEBUG_MPI
-			pManager->log->writeLine( "[DEBUG] Downloading link data at " + Util::secondsToTime(this->dCurrentTime) );
+			pManager->log->writeLine( "[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] Downloading link data at " + Util::secondsToTime(this->dCurrentTime) );
 #endif
 			for (unsigned int i = 0; i < this->pDomain->getDependentLinkCount(); i++)
 			{
@@ -1334,12 +1360,16 @@ void CSchemeGodunov::Threaded_runBatch()
 		}
 
 		// Flush the command queue so we can wait for it to finish
-		this->pDomain->getDevice()->flushAndSetMarker();
+		// this->pDomain->getDevice()->flushAndSetMarker();
 
 		// Now that we're thread-based we can actually just block
 		// this thread... probably don't need the marker
 		this->pDomain->getDevice()->blockUntilFinished();
-		
+
+		#ifdef DEBUG_MPI
+				pManager->log->writeLine( "[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] timestep after flush: " + std::to_string(this->dCurrentTimestep) );
+		#endif
+
 		// Are cell states now synced?
 		if (bDownloadLinks)
 		{
@@ -1349,23 +1379,46 @@ void CSchemeGodunov::Threaded_runBatch()
 
 		// Read from buffers back to scheme memory space
 		this->readKeyStatistics();
-		
+		this->dCurrentTimestep = std::max(this->dCurrentTimestep,decltype(this->dCurrentTimestep){0}); // DEBUG-NINNGHAZAD
+		#ifdef DEBUG_MPI
+				pManager->log->writeLine( "[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] timestep after readKeyStatistics: " + std::to_string(this->dCurrentTimestep) );
+		#endif
+
 #ifdef DEBUG_MPI
 		if ( uiQueueAmount > 0 )
 		{
-			pManager->log->writeLine("[DEBUG] Finished batch of " + toString(uiQueueAmount) + " with timestep " + Util::secondsToTime(this->dCurrentTimestep) + " at " + Util::secondsToTime(this->dCurrentTime) );
+			std::stringstream ss;
+			ss << std::this_thread::get_id();
+			std::string tid = ss.str();
+			pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] Finished batch of " + toString(uiQueueAmount) + " with timestep " + Util::secondsToTime(this->dCurrentTimestep) + " at " + Util::secondsToTime(this->dCurrentTime) + " THREAD: " + tid);
 			if ( this->dCurrentTimestep < 0.0 )
 			{
-				pManager->log->writeLine( "[DEBUG] We have a negative timestep..." );
+				pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] We have a negative timestep... " + std::to_string(this->dCurrentTimestep) + " " + std::to_string(this->dCurrentTime) + " THREAD: " + tid);
+			}
+			if ( this->dCurrentTimestep == 0.0 )
+			{
+				pManager->log->writeLine("[DEBUG] [" + std::to_string(this->pDomain->getID()) + "] We have a zero timestep..." + std::to_string(this->dCurrentTimestep) + " " + std::to_string(this->dCurrentTime) + " THREAD: " + tid);
 			}
 		}
 #endif
-		
+
 		// Wait until further work is scheduled
-		this->bRunning = false;
+		setRunning(false);
+		//
+		// if(this->dCurrentTimestep <= 0) {
+		// 	if ( this->pDomain->getDevice()->isBusy() )
+		// 	{
+		// 		this->pDomain->getDevice()->blockUntilFinished();
+		// 	}
+		// 	// std::this_thread::sleep_for(1s);
+		// }
 	}
 
 	this->bThreadTerminated = true;
+
+	#ifdef DEBUG_MPI
+		std::cerr << __PRETTY_FUNCTION__ << ": finished" << std::endl;
+	#endif
 }
 
 /*
@@ -1373,8 +1426,22 @@ void CSchemeGodunov::Threaded_runBatch()
  */
 void	CSchemeGodunov::runSimulation( double dTargetTime, double dRealTime )
 {
+	// if(dTargetTime - this->dCurrentTime < 0.0000001) {
+	// 	// Sometimes floating point noise makes this two unequal but extremely close
+	// 	this->dCurrentTime = dTargetTime;
+	// }
+#ifdef DEBUG_MPI
+	pManager->log->writeLine(
+		"runSimulation # this->dCurrentTime: "  + toString( this->dCurrentTime ) +
+		", dCurrentTime:  " + toString( dCurrentTime ) +
+		", dTargetTime:  " + toString( dTargetTime ) +
+		", this->dTargetTime:  " + toString( this->dTargetTime ) +
+		", this->dCurrentTimestepe:  " + toString( this->dCurrentTimestep )
+	);
+#endif
+
 	// Wait for current work to finish
-	if (this->bRunning || this->pDomain->getDevice()->isBusy()) 
+	if (this->bRunning || this->pDomain->getDevice()->isBusy())
 		return;
 
 	// Has the target time changed?
@@ -1397,7 +1464,7 @@ void	CSchemeGodunov::runSimulation( double dTargetTime, double dRealTime )
 			model::errorCodes::kLevelWarning
 		);
 		pManager->log->writeLine(
-			"Current time:   "  + toString( dCurrentTime ) + 
+			"Current time:   "  + toString( dCurrentTime ) +
 			", Target time:  " + toString( dTargetTime )
 		);
 		pManager->log->writeLine(
@@ -1448,7 +1515,7 @@ void	CSchemeGodunov::runSimulation( double dTargetTime, double dRealTime )
 	}
 
 	dBatchStartedTime = dRealTime;
-	this->bRunning = true;
+	setRunning(true);
 	this->runBatchThread();
 }
 
@@ -1461,7 +1528,7 @@ void	CSchemeGodunov::cleanupSimulation()
 	dBatchStartedTime = 0.0;
 
 	// Kill the worker thread
-	bRunning = false;
+	setRunning(false);
 	bThreadRunning = false;
 
 	// Wait for the thread to terminate before returning
@@ -1522,7 +1589,7 @@ void	CSchemeGodunov::rollbackSimulation( double dCurrentTime, double dTargetTime
  */
 bool	CSchemeGodunov::isSimulationFailure( double dExpectedTargetTime )
 {
-	if (bRunning)
+	if (isRunning())
 		return false;
 
 	// Can't exceed number of buffer cells in forecast mode
@@ -1544,7 +1611,7 @@ bool	CSchemeGodunov::isSimulationFailure( double dExpectedTargetTime )
 			model::errorCodes::kLevelWarning
 		);
 		pManager->log->writeLine(
-			"Current time: " + toString(dCurrentTime) + 
+			"Current time: " + toString(dCurrentTime) +
 			", target time: " + toString(dExpectedTargetTime)
 		);
 		return true;
@@ -1571,7 +1638,7 @@ bool	CSchemeGodunov::isSimulationSyncReady( double dExpectedTargetTime )
 	//if ( isSimulationFailure() )
 	//	return false;
 
-	if (bRunning)
+	if (isRunning())
 		return false;
 
 	// Have we hit our target time?
@@ -1607,7 +1674,7 @@ bool	CSchemeGodunov::isSimulationSyncReady( double dExpectedTargetTime )
 #ifdef DEBUG_MPI
 	//pManager->log->writeLine( "Domain is considered sync ready" );
 #endif
-	
+
 	return true;
 }
 
@@ -1634,12 +1701,11 @@ void	CSchemeGodunov::scheduleIteration(
 		oclKernelTimestepReduction->assignArgument( 3, oclBufferCellStatesAlt );
 	}
 
-	// Run the boundary kernels (each bndy has its own kernel now)
-	pDomain->getBoundaries()->applyBoundaries(bUseAlternateKernel ? oclBufferCellStatesAlt : oclBufferCellStates);
-	pDevice->queueBarrier();
-
 	// Main scheme kernel
 	oclKernelFullTimestep->scheduleExecution();
+
+	//pDomain->getBoundaries()->streamBoundaries(this->getCurrentTime());
+
 	pDevice->queueBarrier();
 
 	// Friction
@@ -1648,6 +1714,15 @@ void	CSchemeGodunov::scheduleIteration(
 		oclKernelFriction->scheduleExecution();
 		pDevice->queueBarrier();
 	}
+
+
+	pDomain->getBoundaries()->streamBoundaries(this->getCurrentTime());
+	pDevice->queueBarrier();
+
+	// Run the boundary kernels (each bndy has its own kernel now)
+	pDomain->getBoundaries()->applyBoundaries(bUseAlternateKernel ? oclBufferCellStates : oclBufferCellStatesAlt);
+	// pDomain->getBoundaries()->applyBoundaries(bUseAlternateKernel ? oclBufferCellStates : oclBufferCellStatesAlt); // Note: Should not be required unless something else is broken
+	pDevice->queueBarrier();
 
 	// Timestep reduction
 	if ( this->bDynamicTimestep )
@@ -1729,7 +1804,7 @@ void CSchemeGodunov::saveCurrentState()
 
 	// Block until complete
 	// TODO: Investigate - does this need to be a blocking command?
-	// Blocking should be carried out in CModel to allow multiple domains 
+	// Blocking should be carried out in CModel to allow multiple domains
 	// to download at once...
 	//pDomain->getDevice()->queueBarrier();
 	//pDomain->getDevice()->blockUntilFinished();
@@ -1765,12 +1840,12 @@ double CSchemeGodunov::proposeSyncPoint( double dCurrentTime )
 	if ( dCurrentTime > 1E-5 && uiBatchSuccessful > 0 )
 	{
 		// Try to accommodate approximately three spare iterations
-		dProposal = dCurrentTime + 
+		dProposal = dCurrentTime +
 			max(fabs(this->dTimestep), pDomain->getRollbackLimit() * (dBatchTimesteps / uiBatchSuccessful) * (((double)pDomain->getRollbackLimit() - pManager->getDomainSet()->getSyncBatchSpares()) / pDomain->getRollbackLimit()));
 		// Don't allow massive jumps
 		//if ((dProposal - dCurrentTime) > dBatchTimesteps * 3.0)
 		//	dProposal = dCurrentTime + dBatchTimesteps * 3.0;
-		// If we've hit our rollback limit, use the time we reached to determine a conservative estimate for 
+		// If we've hit our rollback limit, use the time we reached to determine a conservative estimate for
 		// a new sync point
 		if ( uiBatchSuccessful >= pDomain->getRollbackLimit() )
 			dProposal = dCurrentTime + dBatchTimesteps * 0.95;

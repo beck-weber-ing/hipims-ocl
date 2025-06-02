@@ -607,6 +607,7 @@ int model::doClose( int iCode )
  */
 void model::doPause()
 {
+	return;
 #ifndef _WINDLL
 	if ( model::quietMode ) return;
 #ifndef PLATFORM_UNIX

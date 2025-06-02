@@ -1,21 +1,21 @@
 /*
  * ------------------------------------------
  *
- *  HIGH-PERFORMANCE INTEGRATED MODELLING SYSTEM (HiPIMS)
- *  Luke S. Smith and Qiuhua Liang
- *  luke@smith.ac
+ *	HIGH-PERFORMANCE INTEGRATED MODELLING SYSTEM (HiPIMS)
+ *	Luke S. Smith and Qiuhua Liang
+ *	luke@smith.ac
  *
- *  School of Civil Engineering & Geosciences
- *  Newcastle University
- * 
+ *	School of Civil Engineering & Geosciences
+ *	Newcastle University
+ *
  * ------------------------------------------
- *  This code is licensed under GPLv3. See LICENCE
- *  for more information.
+ *	This code is licensed under GPLv3. See LICENCE
+ *	for more information.
  * ------------------------------------------
- *  DEVICE MODULE (OPENCL, C99)
+ *	DEVICE MODULE (OPENCL, C99)
  * ------------------------------------------
- *  Universal header, included in every single
- *  program compiled by this model for OpenCL.
+ *	Universal header, included in every single
+ *	program compiled by this model for OpenCL.
  * ------------------------------------------
  *
  */
@@ -26,16 +26,20 @@
 
 // Enable to use printf with AMD devices
 #ifdef DEBUG_OUTPUT
-#pragma		OPENCL EXTENSION cl_amd_printf   : enable
+#pragma		OPENCL EXTENSION cl_amd_printf	 : enable
 //#pragma		OPENCL EXTENSION cl_intel_printf : enable
 #endif
 
-#define		GRAVITY					9.81		// 9.80665
+#define		GRAVITY					9.80665 // 9.81		    // 9.80665
+#define		GRAVITY2				(GRAVITY*2)
+#define		GRAVITY_R				0.10197162129779282426	// 1.0 / 9.80665
+#define		GRAVITY2_R				0.05098581064889641213 // 1.0 / (2 * GRAVITY)
+#define		PI						3.14159265359
 
 // Type aliases to be consistent across different platforms
-typedef char	    cl_char;
+typedef char			cl_char;
 typedef uchar		cl_uchar;
-typedef short       cl_short;
+typedef short			 cl_short;
 typedef ushort		cl_ushort;
 typedef int			cl_int;
 typedef int2		cl_int2;
@@ -58,9 +62,8 @@ typedef ulong2		cl_ulong2;
 typedef ulong4		cl_ulong4;
 typedef ulong8		cl_ulong8;
 //typedef half		cl_half;			// Requires OpenCL extension...
-typedef float       cl_float;
-typedef float2      cl_float2;
-//typedef float3      cl_float3;
-typedef float4      cl_float4;
-typedef float8      cl_float8;
-
+typedef float			 cl_float;
+typedef float2			cl_float2;
+//typedef float3			cl_float3;
+typedef float4			cl_float4;
+typedef float8			cl_float8;

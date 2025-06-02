@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -25,6 +25,7 @@
 #include <fstream>
 #include <sstream>
 #include <locale>
+#include <mutex>
 
 // Namespaces
 
@@ -63,18 +64,18 @@ class CLog
 		void		setDir( char*, size_t );				// Set the directory to given string
 		std::string	getPath();								// Returns the path
 		std::string getDir();								// Returns the directory
-		
-	private:
 
+	private:
+		std::mutex	mutex;
 		// Private variables
-		char*			logPath;							// Full path to the log file
-		char*			logDir;								// Directory for log files
+		char*		logPath;							// Full path to the log file
+		char*		logDir;								// Directory for log files
 		std::ofstream	logStream;							// Handle for the log file stream
 		unsigned int	uiDebugFileID;						// Incremental tracking for debug files output
 		unsigned int	uiLineCount;						// Number of lines written
 #ifdef MPI_ON
-		int				iProcID;							// MPI process ID
-		int				iProcCount;							// MPI process count
+		int		iProcID;							// MPI process ID
+		int		iProcCount;							// MPI process count
 #endif
 
 		// Private functions

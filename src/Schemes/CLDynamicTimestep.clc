@@ -7,7 +7,7 @@
  *
  *  School of Civil Engineering & Geosciences
  *  Newcastle University
- * 
+ *
  * ------------------------------------------
  *  This code is licensed under GPLv3. See LICENCE
  *  for more information.
@@ -15,7 +15,7 @@
  *  CFL DYNAMIC TIMESTEP
  * ------------------------------------------
  *  Calculate the timestep using a reduction
- *  procedure and increment the total model 
+ *  procedure and increment the total model
  *  time.
  * ------------------------------------------
  *
@@ -25,7 +25,7 @@
  *  Advance the total model time by the timestep specified
  */
 __kernel  __attribute__((reqd_work_group_size(1, 1, 1)))
-void tst_Advance_Normal( 
+void tst_Advance_Normal(
 		__global cl_double *  	dTime,
 		__global cl_double *  	dTimestep,
 		__global cl_double *  	dTimeHydrological,
@@ -50,33 +50,38 @@ void tst_Advance_Normal(
 	dLclTime += dLclTimestep;
 	dLclBatchTimesteps += dLclTimestep;
 
+	uiLclBatchSuccessful += ( dLclTimestep > 0.0 );
+	uiLclBatchSkipped += ( dLclTimestep <= 0.0 );
+/*
 	if ( dLclTimestep > 0.0 )
 	{
 		uiLclBatchSuccessful++;
 	} else {
 		uiLclBatchSkipped++;
 	}
-
+*/
 	// Hydrological processes run with their own timestep which is larger
+	dLclTimeHydrological = dLclTimeHydrological*(dLclTimeHydrological <= TIMESTEP_HYDROLOGICAL) + dLclTimestep;
+/*
 	if (dLclTimeHydrological > TIMESTEP_HYDROLOGICAL)
 	{
 		dLclTimeHydrological = dLclTimestep;
 	} else {
 		dLclTimeHydrological += dLclTimestep;
 	}
+*/
 
 	#ifdef TIMESTEP_DYNAMIC
 
-	__private cl_double dCellSpeed, dMaxSpeed;
+//	__private cl_double dCellSpeed, dMaxSpeed;
+	__private cl_double dMaxSpeed;
 	__private cl_double dMinTime;
 
-	dCellSpeed = 0.0;
+//	dCellSpeed = 0.0;
 	dMaxSpeed  = 0.0;
-	for( unsigned int i = 0; i < TIMESTEP_WORKERS; i++ )
+	for( unsigned int i = 0; i < TIMESTEP_WORKERS; ++i )
 	{
-		dCellSpeed = pReductionData[i];
-		if ( dCellSpeed > dMaxSpeed ) 
-			dMaxSpeed = dCellSpeed;
+		dMaxSpeed = fmax(dMaxSpeed,pReductionData[i]);
 	}
 
 	// Convert velocity to a time (assumes domain deltaX=deltaY here)
@@ -119,7 +124,7 @@ void tst_Advance_Normal(
 	{
 		if ( dLclSyncTime - dLclTime > VERY_SMALL )
 			dLclTimestep = dLclSyncTime - dLclTime;
-		if ( dLclSyncTime - dLclTime <= VERY_SMALL )
+		else if ( dLclSyncTime - dLclTime <= VERY_SMALL )
 			dLclTimestep = -dLclTimestep;
 	}
 
@@ -129,16 +134,18 @@ void tst_Advance_Normal(
 		dLclTimestep = TIMESTEP_EARLY_LIMIT;
 
 	// Don't exceed the total simulation time
-	if ( ( dLclTime + dLclTimestep ) > SCHEME_ENDTIME )
-		dLclTimestep = SCHEME_ENDTIME - dLclTime;
+	// if ( ( dLclTime + dLclTimestep ) > SCHEME_ENDTIME )
+	//	dLclTimestep = SCHEME_ENDTIME - dLclTime;
+	dLclTimestep = fmin(dLclTimestep,SCHEME_ENDTIME - dLclTime);
 
 	// A sensible maximum timestep
-	if (dLclTimestep > TIMESTEP_MAXIMUM)
-		dLclTimestep = TIMESTEP_MAXIMUM;
+	// if (dLclTimestep > TIMESTEP_MAXIMUM)
+	//	dLclTimestep = TIMESTEP_MAXIMUM;
+	dLclTimestep = fmin(dLclTimestep,TIMESTEP_MAXIMUM);
 
 	// Commit to global memory
-	*dTime			   = dLclTime;
-	*dTimestep		   = dLclTimestep;
+	*dTime		   = dLclTime;
+	*dTimestep	   = dLclTimestep;
 	*dTimeHydrological = dLclTimeHydrological;
 	*dBatchTimesteps   = dLclBatchTimesteps;
 	*uiBatchSuccessful = uiLclBatchSuccessful;
@@ -149,7 +156,7 @@ void tst_Advance_Normal(
  *  Advance the total model time by the timestep specified
  */
 __kernel  __attribute__((reqd_work_group_size(1, 1, 1)))
-void tst_ResetCounters ( 
+void tst_ResetCounters (
 		__global cl_double *  	dBatchTimesteps,
 		__global cl_uint *  	uiBatchSuccessful,
 		__global cl_uint *  	uiBatchSkipped
@@ -164,7 +171,7 @@ void tst_ResetCounters (
  *  Reduce the timestep by calculating for each workgroup
  */
 __kernel  REQD_WG_SIZE_LINE
-void tst_Reduce( 
+void tst_Reduce(
 		__global cl_double4 *  			pCellData,
 		__global cl_double const * restrict	dBedData,
 		__global cl_double *  			pReductionData
@@ -175,7 +182,7 @@ void tst_Reduce(
 	// Get global ID for cell
 	cl_uint		uiLocalID		= get_local_id(0);
 	cl_uint		uiLocalSize		= get_local_size(0);
-	
+
 	cl_ulong	ulCellID		= get_global_id(0);
 	cl_double4	pCellState;
 	cl_double	dBedElevation;
@@ -185,19 +192,22 @@ void tst_Reduce(
 	while ( ulCellID < DOMAIN_CELLCOUNT )
 	{
 		// Calculate the velocity...
-		pCellState		= pCellData[ ulCellID ];
+		pCellState	= pCellData[ ulCellID ];
 		dBedElevation	= dBedData[ ulCellID ];
-		
+
 		dDepth = pCellState.x - dBedElevation;
-		
+
 		if ( dDepth > QUITE_SMALL && pCellState.y > -9999.0 )
 		{
 			#ifndef TIMESTEP_SIMPLIFIED
 
 			dVelX = pCellState.z / dDepth;
 			dVelY = pCellState.w / dDepth;
-			if ( dVelX < 0.0 ) dVelX = -dVelX;
-			if ( dVelY < 0.0 ) dVelY = -dVelY;
+
+			// if ( dVelX < 0.0 ) dVelX = -dVelX;
+			dVelX = fabs(dVelX);
+			// if ( dVelY < 0.0 ) dVelY = -dVelY;
+			dVelY = fabs(dVelY);
 
 			dVelX += sqrt( GRAVITY * dDepth );
 			dVelY += sqrt( GRAVITY * dDepth );
@@ -208,15 +218,14 @@ void tst_Reduce(
 			dVelY = sqrt( GRAVITY * dDepth );
 
 			#endif
-			dCellSpeed = ( dVelX  < dVelY ) ? dVelY : dVelX;
+			dCellSpeed = fmax(dVelX,dVelY); // ( dVelX  < dVelY ) ? dVelY : dVelX;
 
 		} else {
 			dCellSpeed = 0.0;
 		}
 
 		// Is this velocity higher, therefore a greater time constraint?
-		if ( dCellSpeed > dMaxSpeed ) 
-			dMaxSpeed = dCellSpeed;
+		dMaxSpeed = fmax(dMaxSpeed,dCellSpeed);
 
 		// Move on to the next cell
 		ulCellID += get_global_size(0);
@@ -238,8 +247,8 @@ void tst_Reduce(
 		{
 			cl_double	dComparison   = pScratchData[ uiLocalID + iOffset ];
 			cl_double	dMine		  = pScratchData[ uiLocalID ];
-			pScratchData[ uiLocalID ] = ( dMine < dComparison ) ? dComparison: dMine;
-		} 
+			pScratchData[ uiLocalID ] = fmax(dMine,dComparison); // ( dMine < dComparison ) ? dComparison: dMine;
+		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
@@ -253,7 +262,7 @@ void tst_Reduce(
  *  Reduction will have been carried out again first.
  */
 __kernel  __attribute__((reqd_work_group_size(1, 1, 1)))
-void tst_UpdateTimestep( 
+void tst_UpdateTimestep(
 		__global cl_double *  	dTime,
 		__global cl_double *  	dTimestep,
 		__global cl_double *  	pReductionData,
@@ -274,17 +283,16 @@ void tst_UpdateTimestep(
 
 	dCellSpeed = 0.0;
 	dMaxSpeed  = 0.0;
-	for( unsigned int i = 0; i < TIMESTEP_WORKERS; i++ )
+	for( unsigned int i = 0; i < TIMESTEP_WORKERS; ++i )
 	{
 		dCellSpeed = pReductionData[i];
-		if ( dCellSpeed > dMaxSpeed ) 
-			dMaxSpeed = dCellSpeed;
+		dMaxSpeed = fmax(dMaxSpeed,dCellSpeed);
 	}
 
 	// Convert velocity to a time (assumes domain deltaX=deltaY here)
 	// Force progression at the start of a simulation.
-	dMinTime = DOMAIN_DELTAX/dMaxSpeed;
-	
+	dMinTime = DOMAIN_DELTAX / dMaxSpeed;
+
 	if (dLclTime < TIMESTEP_START_MINIMUM_DURATION && dMinTime < TIMESTEP_START_MINIMUM)
 		dMinTime = TIMESTEP_START_MINIMUM;
 
@@ -302,14 +310,15 @@ void tst_UpdateTimestep(
 	// Don't exceed the early limit
 	if (dLclTime < TIMESTEP_EARLY_LIMIT_DURATION && dLclTimestep > TIMESTEP_EARLY_LIMIT)
 		dLclTimestep = TIMESTEP_EARLY_LIMIT;
-	
+
 	// Don't exceed the sync time
 	if ((dLclTime + dLclTimestep) >= dLclSyncTime)
 		dLclTimestep = fmax((cl_double)0.0, dLclSyncTime - dLclTime);
 
 	// A sensible maximum timestep
-	if (dLclTimestep > TIMESTEP_MAXIMUM)
-		dLclTimestep = TIMESTEP_MAXIMUM;
+	// if (dLclTimestep > TIMESTEP_MAXIMUM)
+	//	dLclTimestep = TIMESTEP_MAXIMUM;
+	dLclTimestep = fmin(dLclTimestep,TIMESTEP_MAXIMUM);
 
 	// Commit to global memory
 	*dTimestep		   = dLclTimestep;
