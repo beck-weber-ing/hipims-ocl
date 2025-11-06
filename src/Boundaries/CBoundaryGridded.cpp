@@ -168,6 +168,8 @@ void CBoundaryGridded::prepareBoundary(
     pConfiguration.TimeseriesEntries = this->uiTimeseriesLength;
     pConfiguration.TimeseriesInterval = this->dTimeseriesInterval;
     pConfiguration.Definition = (cl_uint)this->ucValue;
+    std::cout << "DEBUG: GRIDDED BOUNDARY TYPE " << pConfiguration.Definition
+              << std::endl;
     pConfiguration.GridRows = this->pTransform->uiRows;
     pConfiguration.GridCols = this->pTransform->uiColumns;
     pConfiguration.GridResolution = this->pTransform->dTargetResolution;

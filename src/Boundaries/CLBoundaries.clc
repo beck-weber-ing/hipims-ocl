@@ -241,14 +241,18 @@ __kernel void bdy_Gridded (
 
 	// Apply the value...
 	if ( pConfig.Definition == BOUNDARY_GRIDDED_RAIN_INTENSITY )
-		pCellData.x += dRate / 3600000.0 * dLclTimestep;
+		pCellData.x += (dRate / 3600000.0) * dLclTimestep;
 
 	if ( pConfig.Definition == BOUNDARY_GRIDDED_MASS_FLUX )
 		pCellData.x += dRate / ( (cl_double)DOMAIN_DELTAX * (cl_double)DOMAIN_DELTAY ) * dLclTimestep;
 
+	if (pConfig.Definition == BOUNDARY_GRIDDED_LOSS_RATE)
+		pCellData.x = max(dCellBedElev, pCellData.x - ((dRate / 3600000.0) * dLclTimestep));
+
 	// Return to global memory
 	pCellState[ulIdx] = pCellData;
 }
+
 
 __kernel void bdy_StreamingGridded (
 	__constant		sBdyGriddedConfiguration *	pConfiguration,
