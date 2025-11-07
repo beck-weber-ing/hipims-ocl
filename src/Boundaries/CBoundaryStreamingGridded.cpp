@@ -85,6 +85,7 @@ bool CBoundaryStreamingGridded::setupFromConfig(
     return false;
   }
 
+  std::cerr << "DEBUG: STREAMINGGRIDDED TYPE " << cBoundaryValue << std::endl;
   // The gridded data represents...?
   if (cBoundaryValue == NULL || strcmp(cBoundaryValue, "rain-intensity") == 0) {
     this->setValue(model::boundaries::griddedValues::kValueRainIntensity);

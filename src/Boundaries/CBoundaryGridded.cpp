@@ -86,12 +86,12 @@ bool CBoundaryGridded::setupFromConfig(XMLElement *pElement,
                    model::errorCodes::kLevelWarning);
     return false;
   }
-
+  std::cerr << "DEBUG: GRIDDED TYPE " << cBoundaryValue << std::endl;
   // The gridded data represents...?
   if (cBoundaryValue == NULL || strcmp(cBoundaryValue, "rain-intensity") == 0) {
     this->setValue(model::boundaries::griddedValues::kValueRainIntensity);
   } else if (strcmp(cBoundaryValue, "loss-rate") == 0) {
-    this->setValue(model::boundaries::uniformValues::kValueLossRate);
+    this->setValue(model::boundaries::griddedValues::kValueLossRate);
   } else if (strcmp(cBoundaryValue, "mass-flux") == 0) {
     this->setValue(model::boundaries::griddedValues::kValueMassFlux);
   } else {
@@ -168,7 +168,7 @@ void CBoundaryGridded::prepareBoundary(
     pConfiguration.TimeseriesEntries = this->uiTimeseriesLength;
     pConfiguration.TimeseriesInterval = this->dTimeseriesInterval;
     pConfiguration.Definition = (cl_uint)this->ucValue;
-    std::cout << "DEBUG: GRIDDED BOUNDARY TYPE " << pConfiguration.Definition
+    std::cerr << "DEBUG: GRIDDED BOUNDARY TYPE " << pConfiguration.Definition
               << std::endl;
     pConfiguration.GridRows = this->pTransform->uiRows;
     pConfiguration.GridCols = this->pTransform->uiColumns;
@@ -207,6 +207,8 @@ void CBoundaryGridded::prepareBoundary(
     pConfiguration.TimeseriesEntries = this->uiTimeseriesLength;
     pConfiguration.TimeseriesInterval = this->dTimeseriesInterval;
     pConfiguration.Definition = (cl_uint)this->ucValue;
+    std::cerr << "DEBUG: GRIDDED BOUNDARY TYPE " << pConfiguration.Definition
+              << std::endl;
     pConfiguration.GridRows = this->pTransform->uiRows;
     pConfiguration.GridCols = this->pTransform->uiColumns;
     pConfiguration.GridResolution = this->pTransform->dSourceResolution;
@@ -267,6 +269,11 @@ void CBoundaryGridded::prepareBoundary(
 
 // TODO: Only the cell buffer should be passed here...
 void CBoundaryGridded::applyBoundary(COCLBuffer *pBufferCell) {
+  std::cerr << "DEBUG: APPLY GRIDDED KERNEL: " << (cl_uint)this->ucValue
+            << std::endl;
+  if ((cl_uint)this->ucValue ==
+      model::boundaries::griddedValues::kValueLossRate)
+    std::cerr << "DEBUG: APPLY GRIDDED LOSS KERNEL" << std::endl;
   this->oclKernel->assignArgument(5, pBufferCell);
   this->oclKernel->scheduleExecution();
 }
