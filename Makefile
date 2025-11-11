@@ -1,16 +1,19 @@
 ifeq (,$(wildcard /usr/local/bin/mpic++))
 	CPP = g++
 	MACROS := -D MPI_OFF -std=c++17 -O3 -march=native -ggdb
+	# -fsanitize=address
 	# -DDEBUG -DDEBUG_OPENCL -DDEBUG_MPI
 else
 	CPP = /usr/local/bin/mpic++
 	MACROS := -D MPI_ON -std=c++17 -O3 -march=native -ggdb
+	# -fsanitize=address
 	# -DDEBUG -DDEBUG_OPENCL -DDEBUG_MPI
 endif
 
 CPP_FILES := $(wildcard src/*.cpp) $(wildcard src/*/*.cpp) $(wildcard src/*/*/*.cpp) $(wildcard src/*/*/*/*.cpp) $(wildcard src/*/*/*/*/*.cpp)
 OBJ_FILES := $(patsubst %.cpp,%.o,$(CPP_FILES))
 LD_FLAGS := -L/opt/AMDAPP/lib/x86_64/ -L/usr/local/browndeer/lib/
+#-fsanitize=address
 LD_LINKS := -rdynamic -lm -lboost_system -lboost_regex -lboost_filesystem -lOpenCL -lgdal -lncurses -lpthread -lrt -ltinfo
 CC_FLAGS := -rdynamic -g -Wall -g3 -w -I/usr/local/cuda/include/ -I/usr/local/include/ -I/usr/include/gdal/ -I/opt/AMDAPP/include/ -I/usr/local/browndeer/include/ $(MACROS)
 

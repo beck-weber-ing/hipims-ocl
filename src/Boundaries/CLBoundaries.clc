@@ -220,6 +220,7 @@ __kernel void bdy_Gridded (
 	__private cl_double					dCellBedElev	= pCellBed[ulIdx];
 	__private cl_double					dLclTime		= *pTime;
 	__private cl_double					dLclTimestep	= *pTimeHydrological;
+	__private cl_double					dt	= *pTimestep;
 	// printf("-- GRIDDED BOUNDARY AAA -- %u\n", pConfig.Definition);
 	// Cell disabled?
 	if (pCellData.y <= -9999.0 || pCellData.x == -9999.0)
@@ -240,11 +241,12 @@ __kernel void bdy_Gridded (
 	__private cl_double dRate	  = pTimeseries[ ulBdyCell ];
 
 
-	printf("-- GRIDDED BOUNDARY -- %u\n", pConfig.Definition);
+	// printf("-- GRIDDED BOUNDARY -- %u\n", pConfig.Definition);
 
 	// Apply the value...
 	if ( pConfig.Definition == BOUNDARY_GRIDDED_RAIN_INTENSITY ) {
 		pCellData.x += (dRate / 3600000.0) * dLclTimestep;
+
 		// printf("TYPE RAIN\n");
 
 	} else if ( pConfig.Definition == BOUNDARY_GRIDDED_MASS_FLUX ) {
@@ -253,13 +255,14 @@ __kernel void bdy_Gridded (
 
 	} else if (pConfig.Definition == BOUNDARY_GRIDDED_LOSS_RATE) {
 		pCellData.x = max(dCellBedElev, pCellData.x - ((dRate / 3600000.0) * dLclTimestep));
-		printf("TYPE LOSS\n");
+		if(dRate > 0 && ulIdx == 14372121 && pCellData.x > dCellBedElev)
+			printf("TYPE LOSS: id: %lu rate: %f delta: %f fsl: %f bed: %f dth: %f dt: %f t:%f\n",ulIdx,dRate,((dRate / 3600000.0) * dLclTimestep),pCellData.x,dCellBedElev,dLclTimestep,dt,dLclTime);
 	}
 	// printf("-- ##### --\n");
 	// Return to global memory
 	pCellState[ulIdx] = pCellData;
 }
-
+/*
 
 __kernel void bdy_StreamingGridded (
 	__constant		sBdyGriddedConfiguration *	pConfiguration,
@@ -321,7 +324,7 @@ __kernel void bdy_StreamingGridded (
 	// Return to global memory
 	pCellState[ulIdx] = pCellData;
 }
-
+*/
 __kernel void bdy_StreamingGridded (
 	__constant		sBdyGriddedConfiguration *	pConfiguration,
 	__global		cl_double const * restrict	pValues,

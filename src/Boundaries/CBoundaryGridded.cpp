@@ -249,6 +249,7 @@ void CBoundaryGridded::prepareBoundary(
 
   // Prepare kernel and arguments
   this->oclKernel = pProgram->getKernel("bdy_Gridded");
+
   COCLBuffer *aryArgsBdy[] = {pBufferConfiguration,
                               pBufferTimeseries,
                               pBufferTime,
@@ -259,6 +260,8 @@ void CBoundaryGridded::prepareBoundary(
                               pBufferManning};
   this->oclKernel->assignArguments(aryArgsBdy);
 
+  std::cerr << "DEBUG: prepared kernel " << (void *)this->oclKernel
+            << std::endl;
   // Dimension the kernel
   // TODO: Need a more sensible group size!
   CDomainCartesian *pDomain = static_cast<CDomainCartesian *>(this->pDomain);
@@ -272,8 +275,11 @@ void CBoundaryGridded::applyBoundary(COCLBuffer *pBufferCell) {
   std::cerr << "DEBUG: APPLY GRIDDED KERNEL: " << (cl_uint)this->ucValue
             << std::endl;
   if ((cl_uint)this->ucValue ==
-      model::boundaries::griddedValues::kValueLossRate)
+      model::boundaries::griddedValues::kValueLossRate) {
     std::cerr << "DEBUG: APPLY GRIDDED LOSS KERNEL" << std::endl;
+  }
+  this->oclKernel->assignArgument(0, this->pBufferConfiguration);
+  this->oclKernel->assignArgument(1, this->pBufferTimeseries);
   this->oclKernel->assignArgument(5, pBufferCell);
   this->oclKernel->scheduleExecution();
 }
